@@ -1,16 +1,16 @@
 |test| |codecov| |docs|
 
-.. |test| image:: https://github.com/gregkseno/master-thesis/workflows/test/badge.svg
+.. .. |test| image:: https://github.com/gregkseno/master-thesis/workflows/test/badge.svg
 ..    :target: https://github.com/gregkseno/master-thesis/tree/master
-    :alt: Test status
+..    :alt: Test status
     
-.. |codecov| image:: https://img.shields.io/codecov/c/github/intsystems/ProjectTemplate/master
+.. .. |codecov| image:: https://img.shields.io/codecov/c/github/intsystems/ProjectTemplate/master
 ..    :target: https://app.codecov.io/gh/intsystems/ProjectTemplate
-    :alt: Test coverage
+..    :alt: Test coverage
     
-.. |docs| image:: https://github.com/gregkseno/master-thesis/workflows/docs/badge.svg
-    :target: https://intsystems.github.io/ProjectTemplate/
-    :alt: Docs status
+.. .. |docs| image:: https://github.com/gregkseno/master-thesis/workflows/docs/badge.svg
+..    :target: https://intsystems.github.io/ProjectTemplate/
+..    :alt: Docs status
 
 
 .. class:: center
