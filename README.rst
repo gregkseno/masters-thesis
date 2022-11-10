@@ -15,8 +15,8 @@
 
 .. class:: center
 
-    :Research title: A Model for Creating a Personalized Avatar of a Person for a Virtual Fitting of Clothes
-    :Research Type: Magister's Thesis
+    :Title: A Model for Creating a Personalized Avatar of a Person for a Virtual Fitting of Clothes
+    :Type: Magister's Thesis
     :Author: Ksenofontov Gregory Sergeevich
     :Supervisor: Candidate of Physico-Mathematical Sciences, Yanina Anastasia Olegovna
 
