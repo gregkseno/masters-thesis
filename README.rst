@@ -1,11 +1,11 @@
 |test| |codecov| |docs|
 
 .. |test| image:: https://github.com/gregkseno/master-thesis/workflows/test/badge.svg
-    :target: https://github.com/gregkseno/master-thesis/tree/master
+..    :target: https://github.com/gregkseno/master-thesis/tree/master
     :alt: Test status
     
 .. |codecov| image:: https://img.shields.io/codecov/c/github/intsystems/ProjectTemplate/master
-    :target: https://app.codecov.io/gh/intsystems/ProjectTemplate
+..    :target: https://app.codecov.io/gh/intsystems/ProjectTemplate
     :alt: Test coverage
     
 .. |docs| image:: https://github.com/gregkseno/master-thesis/workflows/docs/badge.svg
