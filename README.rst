@@ -1,4 +1,4 @@
-|test| |codecov| |docs|
+.. |test| |codecov| |docs|
 
 .. .. |test| image:: https://github.com/gregkseno/master-thesis/workflows/test/badge.svg
 ..    :target: https://github.com/gregkseno/master-thesis/tree/master
