@@ -15,10 +15,10 @@
 
 .. class:: center
 
-    :Название исследуемой задачи: Модель для создания персонализированного аватара человека для виртуальной примерки одежды
-    :Тип научной работы: Научная исследовательская работа
-    :Автор: Ксенофонтов Григорий Сергеевич
-    :Научный руководитель: кандидат физико-математических наук, Янина Анастасия Олеговна
+    :Research title: A Model for Creating a Personalized Avatar of a Person for a Virtual Fitting of Clothes
+    :Research Type: Magister's Thesis
+    :Author: Ksenofontov Gregory Sergeevich
+    :Supervisor: Candidate of Physico-Mathematical Sciences, Yanina Anastasia Olegovna
 
 Abstract
 ========
