@@ -1,0 +1,192 @@
+\documentclass[10pt,pdf,hyperref={unicode}]{beamer}
+
+\mode<presentation>
+{
+\usetheme{boxes}
+\beamertemplatenavigationsymbolsempty
+
+\setbeamertemplate{footline}[page number]
+\setbeamersize{text margin left=0.5em, text margin right=0.5em}
+}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english, russian]{babel}
+\usepackage{bm}
+\usepackage{multirow}
+\usepackage{ragged2e}
+\usepackage{indentfirst}
+\usepackage{multicol}
+\usepackage{subfig}
+\usepackage{amsmath,amssymb}
+\usepackage{enumerate}
+\usepackage{mathtools}
+\usepackage{comment}
+\usepackage{multicol}
+
+\usepackage[all]{xy}
+
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows}
+
+\tikzstyle{name} = [parameters]
+\definecolor{name}{rgb}{0.5,0.5,0.5}
+
+\usepackage{caption}
+\captionsetup{skip=0pt,belowskip=0pt}
+
+\newtheorem{rustheorem}{Теорема}
+\newtheorem{russtatement}{Утверждение}
+\newtheorem{rusdefinition}{Определение}
+
+% colors
+\definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
+\definecolor{darkcyan}{rgb}{0.0, 0.55, 0.55}
+
+\AtBeginEnvironment{figure}{\setcounter{subfigure}{0}}
+
+\captionsetup[subfloat]{labelformat=empty}
+
+%----------------------------------------------------------------------------------------------------------
+
+\title[Пример слайдов по работе]{Пример слайдов по работе \\ курса}
+\author{И.\,О.\,Фамилия}
+
+\institute[]{Московский физико-технический институт}
+\date[2022]{\small 10\;февраля\;2022\,г.}
+
+%---------------------------------------------------------------------------------------------------------
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+%----------------------------------------------------------------------------------------------------------
+\section{Слайд об исследованиях}
+\begin{frame}{Слайд об исследованиях}
+\bigskip
+Исследуется проблема \ldots.
+\begin{block}{Цель исследования~---}
+предложить метод \ldots.
+\end{block}
+\begin{block}{Требуется предложить}
+\justifying
+\begin{enumerate}[1)]
+\item метод \ldots,
+\item метод \ldots,
+\item метод \ldots.
+\end{enumerate}
+\end{block}
+\begin{block}{Решение}
+Для \ldots.
+\end{block}
+\end{frame}
+
+%---------------------------------------------------------------------------------------------------------
+\section{Постановка задачи \ldots}
+\begin{frame}{Постановка задачи \ldots}
+Заданы
+\begin{enumerate}[1)]
+    \item признаки \ldots,
+    \item целевая переменная \ldots,
+    \item \ldots.
+\end{enumerate}
+
+\ldots
+
+\bigskip
+
+Требуется выбрать модель \ldots из множества
+\[
+	\mathfrak{G} = \left\{\mathbf{g}| \mathbf{g}:\mathbb{R}^{n} \to \mathbb{Y}^\prime\right\}.
+\]
+Оптимизационная задача \ldots:
+\[
+	\mathbf{g} = \arg\min_{\mathbf{g} \in \mathfrak{G}} \mathcal{L}\bigr(\ldots\bigr),
+\]
+где $\mathcal{L}$~--- функция ошибки.
+
+\bigskip
+\footnotetext[1]{\textit{Lopez-Paz D., Bottou L., Scholkopf B., Vapnik V.} Unifying distillation and privileged information // ICLR, 2016.}
+\footnotetext[2]{\textit{Hinton G., Vinyals O., Dean J.} Distilling the knowledge in a neural network // NIPS, 2015.}
+\end{frame}
+
+%----------------------------------------------------------------------------------------------------------
+\section{Предложенный метод \ldots}
+\begin{frame}{Предложенный метод \ldots}
+~\\[-1mm]
+Заданы
+\begin{enumerate}[1)]
+	\item \ldots,
+	\item \ldots.
+\end{enumerate}
+
+\medskip
+Параметрические семейства:
+\[
+\setlength\abovedisplayskip{0pt}
+\mathfrak{F} = \left\{\mathbf{f}| \mathbf{f} = \text{softmax}\bigr(\mathbf{v}\bigr(\mathbf{x}\bigr)/T\bigr), \quad \mathbf{v}: \mathbb{R}^{n} \to \mathbb{R}^K \right\},
+\]
+\[
+\mathfrak{G} = \left\{\mathbf{g}| \mathbf{g} = \text{softmax}\bigr(\mathbf{z}\bigr(\mathbf{x}\bigr)/T\bigr), \quad \mathbf{z}: \mathbb{R}^n \to \mathbb{R}^K \right\},
+\]
+где~\ldots.
+
+\medskip
+Функция ошибки
+\[
+\setlength\abovedisplayskip{0pt}
+\begin{aligned}
+   \mathcal{L}\bigr(\mathbf{g}\bigr) = &-\sum_{i=1}^{m}\underbrace{{\sum_{k=1}^{K}y^k_i\log\mathbf{g}\bigr(\mathbf{x}_i\bigr)\bigr|_{T=1}}}_{\text{исходная функция потерь}}- \sum_{i=1}^{m}\underbrace{{\sum_{k=1}^{K}\mathbf{f}\bigr(\mathbf{x}_i\bigr)\bigr|_{T=T_0}\log\mathbf{g}\bigr(\mathbf{x}_i\bigr)\bigr|_{T=T_0}}}_{\text{слагаемое дистилляции}},
+\end{aligned}
+\setlength\belowdisplayskip{0pt}
+\]
+где~\ldots.
+
+Оптимальная модель выбирается из класса,
+$\hat{\mathbf{g}} = \arg\min\limits_{\mathbf{g} \in \mathfrak{G}_{\text{cl}}} \mathcal{L}\bigr(\mathbf{g}\bigr).$
+\end{frame}
+
+%----------------------------------------------------------------------------------------------------------
+\section{Анализ предложенного метода \ldots}
+\begin{frame}{Анализ предложенного метода \ldots}
+\justifying
+
+На графике показана зависимость значения параметров$w_i$ в зависимости от параметра~$l_1$-регуляризации~$C$.
+\begin{figure}[h!]
+\includegraphics[width=0.45\textwidth]{../figures/log_reg_cs_exp.eps}
+\includegraphics[width=0.45\textwidth]{../figures/log_reg_cs_exp.eps}
+\end{figure}
+
+С увеличением параметра регуляризации~$C$ число ненулевых параметров~$w_i$ уменьшается.
+
+\end{frame}
+
+%----------------------------------------------------------------------------------------------------------
+\section{Выводы}
+\begin{frame}{Выводы}
+\justifying
+	\begin{enumerate}
+	\justifying
+	    \item Предложен \ldots.
+        \item Доказаны теоремы \ldots, 
+        \begin{itemize}
+            \item[---] \ldots,
+            \item[---] \ldots.
+        \end{itemize}
+        \item Предложен метод \ldots
+        \begin{itemize}
+            \item[---] \ldots,
+            \item[---] \ldots.
+        \end{itemize}
+        \item Предложены методы \ldots
+        \begin{itemize}
+            \item[---] \ldots,
+            \item[---] \ldots.
+        \end{itemize}
+        \item Предложена вероятностная интерпретации \ldots.
+	\end{enumerate}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+
+\end{document} 
