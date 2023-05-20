@@ -73,9 +73,31 @@ pdfkeywords={First keyword, Second keyword, More},
 \keywords{First keyword \and Second keyword \and More}
 
 \section{Introduction}
-\lipsum[2]
-\lipsum[3]
+Let we have two distributions $\pi_0(x)$ and $\pi_1(y)$, that describes two data distributions at time 0 and time 1, respectively. Also, consider:
+$$\pi_1(y) \neq \int p(y|x)\pi_0(x)dx,$$
+where $p(y_1|x_0)$ -- the transition density (i.e. the probability of transitioning from $x$ at time $0$ to $y$ at time $1$) under the Brownian motion. In other words, $\pi_1(y)$ differs significantly from the distribution predicted by Brownian motion.
 
+The Schrödinger Bridge problem considers the finding of most likely stochastic process that transforms the distribution $\pi_0(x)$ at time $0$ to $\pi_1(y)$ at time $1$ and is closer in information-theoretic sense.
+
+So, the Schrödinger bridge provides us with a theoretically-grounded mechanism for mapping between two distribution to solve such problems like unsupervised domain adaptation and also gives the with the probability of this stochastic evolution, thus allowing us to compare two datasets/distributions which can be useful for hypothesis testing and semantic similarity
+
+So, speaking formally, there are two approaches to problem setting, dynamic and static.
+
+\subsection{Dynamic Schrödinger Bridge Problem}
+In this approach is minimizing of KL divergence between two \textit{path measures} $\mathbb{Q}$ and $\mathbb{W}^\gamma$, path measures of our desired process and prior Wiener process with drift coefficient $\sqrt\gamma$.
+$$\hat\mathbb{Q} = \arg\min_{\mathbb{Q}\in \mathcal{D}(\pi_0, \pi_1)} KL(\mathbb{Q}||\mathbb{W}^\gamma)$$
+
+Path measure is a weak solution for given SDE, i.e. a stochastic process. Weak solution is a terminology for a solution of an SDE, that does not take into account an initial value problem and has the freedom of specifying its probability space
+
+\subsection{Static Schrödinger Bridge Problem}
+In this approach is minimizing of KL divergence between two joint distributions $q(x,y)$ and $p^{\mathbb{W}^\gamma}(x,y)$
+
+$$\left\{ \begin{array}{c}
+\hat p(x,y) = \arg\min_{q(x,y)} KL(q(x,y)||p^{\mathbb{W}^\gamma}(x,y)), \\
+\pi_0(x) = \int q(x,y)dy, \\
+\pi_1(y) = \int q(x,y)dx
+\end{array}\right.$$
+where $q(x,y)$ is a joint distribution which is closest to the Brownian-motion prior subject to marginal constraints (between PDF at time 0 and 1)
 \section{Headings: first level}
 \label{sec:headings}
 
