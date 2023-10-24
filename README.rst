@@ -15,10 +15,10 @@
 
 .. class:: center
 
-    :Title: A Model for Creating a Personalized Avatar of a Person for a Virtual Fitting of Clothes
+    :Title: Schrodinger's Bridge Problem in generative models
     :Type: Magister's Thesis
-    :Author: Ksenofontov Gregory Sergeevich
-    :Supervisor: Candidate of Physico-Mathematical Sciences, Yanina Anastasia Olegovna
+    :Author: Ksenofontov Gregory
+    :Supervisor: Candidate of Physico-Mathematical Sciences, Isachenko Roman
 
 Abstract
 ========
