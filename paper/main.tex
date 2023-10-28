@@ -99,7 +99,7 @@ where $p(y_1|x_0)$ -- the transition density (i.e. the probability of transition
 \end{equation}
 Т.е. вероятность того, что данный path measure принадлежит множеству всех path measures with two prescribed marginals равнялась единице. Из теоремы Санова, изветстно, что асимтотически данная вероятность стремится к следующему выражению:
 \begin{equation} \label{eq3}
-    P\left(\hat{\mathbb{W}} \in \mathcal{D}(\pi_0, \pi_1)\right) \xrightarrow{N\rightarrow \infty} \exp\left(-N\inf_{\mathbb{Q} \in \mathcal{D}(\pi_0, \pi_1)}\mathbb{KL(Q||W})\right)
+    P\left(\hat{\mathbb{W}} \in \mathcal{D}(\pi_0, \pi_1)\right) \xrightarrow{N\rightarrow \infty} \exp\left(-N\inf_{\mathbb{Q} \in \mathcal{D}(\pi_0, \pi_1)}KL\mathbb{(Q||W})\right)
 \end{equation}
 
 Таким образом, для того, чтобы выбполнялось условие \ref{eq2} требуется, чтобы $\mathbb{KL}$ дивергенция была минимальной.
@@ -107,14 +107,22 @@ Overall, the Schrödinger bridge provides us with a theoretically-grounded mecha
 So, speaking formally, there are two approaches to problem setting, dynamic and static.
 \subsection{Dynamic Schrödinger Bridge Problem}
 Данная постановка задачи выходит из теоремы \ref{eq3} . In this approach is minimizing of KL divergence between two \textit{path measures} $\mathbb{Q}$ and $\mathbb{W}^\gamma$, path measures of our desired process and prior Wiener process with drift coefficient $\sqrt\gamma$.
-\begin{equation}
-    \hat{\mathbb{Q}} = \arg\min_{\mathbb{Q}\in \mathcal{D}(\pi_0, \pi_1)} \mathbb{KL(Q||W}^\gamma)
+\begin{equation}\label{dyn}
+    \hat{\mathbb{Q}} = \arg\min_{\mathbb{Q}\in \mathcal{D}(\pi_0, \pi_1)} KL\mathbb{(Q||W}^\gamma)
 \end{equation}
 
-вывод в статик
 \subsection{Static Schrödinger Bridge Problem}
-In this approach is minimizing of $\mathbb{KL}$ divergence between two joint distributions $q(x,y)$ and $p^{\mathbb{W}^\gamma}(x,y)$
-
+Let's decompose $KL$ divergence in \ref{dyn}. Firstly, lets reexpress RN-derivative conditioning on $\textbf{x}(0)=x$ and $\textbf{x}(1)=y$:
+$$
+\frac{d\mathbb{Q}}{d\mathbb{W}^\gamma} = \frac{q(x, y)}{p^{\mathbb{W}^\gamma}(x, y)}\frac{d\mathbb{Q}_{(0,1)}}{d\mathbb{W}^\gamma_{(0,1)}}(\cdot|x,y)
+$$
+Passing this expression to $\mathbb{KL}$ divergence in \ref{dyn} we get:
+\begin{equation}
+    \begin{split}
+        KL\mathbb{(Q||W}^\gamma) = \mathbb{E_Q}\left[\log \frac{d\mathbb{Q}}{d\mathbb{W}^\gamma}\right] = \mathbb{E_Q}\left[\log \frac{q(x, y)}{p^{\mathbb{W}^\gamma}(x, y)}\frac{d\mathbb{Q}_{(0,1)}}{d\mathbb{W}^\gamma_{(0,1)}}(\cdot|x,y)\right] = \\ = \int\log \frac{q(x, y)}{p^{\mathbb{W}^\gamma}(x, y)} d\mathbb{Q} + \int\log \frac{d\mathbb{Q}_{(0,1)}}{d\mathbb{W}^\gamma_{(0,1)}}(\cdot|x,y)d\mathbb{Q}= \\ = \int q(x, y)\log \frac{q(x, y)}{p^{\mathbb{W}^\gamma}(x, y)} dxdy + \int\log q(x, y)\frac{d\mathbb{Q}_{(0,1)}}{d\mathbb{W}^\gamma_{(0,1)}}(\cdot|x,y)d\mathbb{Q}_{(0,1)} = \\ = KL\left(q(x, y) || p^{\mathbb{W}^\gamma}(x, y)\right) + \mathbb{E}_{q(x, y)}\left[KL\left(\mathbb{Q}_{(0,1)}(\cdot|x,y) || \mathbb{W}^\gamma_{(0,1)}(\cdot|x,y)\right)\right]
+    \end{split}
+\end{equation}
+We can see that the second $KL$ divergence doesn't consider the marginal distributions, so it doesn't affect optimisation constraint. Thus, zeroing it we get  static statement:
 $$\left\{ \begin{array}{c}
 \hat q(x,y) = \arg\min_{q(x,y)} KL(q(x,y)||p^{\mathbb{W}^\gamma}(x,y)), \\
 \pi_0(x) = \int q(x,y)dy, \\
@@ -142,11 +150,54 @@ Applying Lagrangian on static SBP we get
 \end{split}
 \end{equation}
 где  $\phi_0(x) = \int\phi_1(y)p^{\mathbb{W}^\gamma}(y|x)dy$, а $\hat\phi_1(y) = \int\hat\phi_0(x)p^{\mathbb{W}^\gamma}(y|x)dx$
+
+\subsection{Schrödinger Half Bridges}
+The half bridge problem consider only one of the boundaries constraint, i.e. $\mathcal{D}(\pi_0(x), \cdot)$ or $\mathcal{D}(\cdot, \pi_1(y))$. 
+\subsubsection{Dynamic Half Bridges}
+More formally forward half bridge is given by:
+\begin{equation}
+    \mathbb{Q}^*=\arg\min_{\mathbb{Q}\in\mathcal{D}(\pi_0(x), \cdot)}KL\left(\mathbb{Q}||\mathbb{W}^\gamma\right)
+\end{equation}
+and backward half bridge is given by:
+\begin{equation}
+    \mathbb{P}^*=\arg\min_{\mathbb{P}\in\mathcal{D}(\cdot, \pi_1(y))}KL\left(\mathbb{P}||\mathbb{W}^\gamma\right)
+\end{equation}
+And they admits following solutions, respectively 
+\begin{equation}
+    \mathbb{Q}^*(A_0\times A_{(0,1]})=\int_{A_0\times A_{(0,1]}}\frac{d\pi_0}{p_0^{\mathbb{W}^\gamma}}(x)d\mathbb{W}^\gamma
+\end{equation}
+\begin{equation}
+    \mathbb{P}^*(A_{[0,1)} \times A_1)=\int_{A_{[0,1)} \times A_1}\frac{d\pi_1}{p_1^{\mathbb{W}^\gamma}}(y)d\mathbb{W}^\gamma
+\end{equation}
+\subsubsection{Static Half Bridges}
+Static forward half bridge is given by:
+\begin{equation}
+\begin{split}
+    q(x,y)^*=\arg\min_{q(x,y)\in\mathcal{D}(\pi_0(x), \cdot)}KL\left(q(x,y)||p^{\mathbb{W}^\gamma}(x,y)\right) \\
+    s.t. \pi_0(x) = \int q(x, y)dy
+\end{split}
+\end{equation}
+and backward half bridge is given by:
+\begin{equation}
+\begin{split}
+    p(x,y)^*=\arg\min_{p(x,y)\in\mathcal{D}(\cdot, \pi_1(y))}KL\left(p(x,y)||p^{\mathbb{W}^\gamma}(x,y)\right) \\
+    s.t. \pi_1(y) = \int q(x, y)dx
+\end{split}
+\end{equation}
+And they admits following solutions, respectively
+\begin{equation}
+    q(x,y)^*=p(x,y)^{\mathbb{W}^\gamma}\frac{\pi_0(x)}{p^{\mathbb{W}^\gamma}(x)}
+\end{equation}
+\begin{equation}
+    p(x,y)^*=p(x,y)^{\mathbb{W}^\gamma}\frac{\pi_1(y)}{p^{\mathbb{W}^\gamma}(y)}
+\end{equation}
+
+Half bridges are a significantly easier problem than full bridges. Not only do they admit “closed-form” solutions in some sense, they also allow removing constraints by incorporating them as an initial value problem
 \subsection{Iteration Proportional Fitting (IPF)}
-One of the oldest algorithms for solving Schrödinger Bridge Problem is Fortret's algorithm (1940).
+One of the oldest algorithms for solving Schrödinger Bridge Problem is Fortet's algorithm (1940).
 
 \begin{algorithm}
-\caption{Fortret's Algorithm}\label{alg:fortret}
+\caption{Fortet's Algorithm}\label{alg:fortret}
 \KwInput{$\pi_0(x)$, $\pi_1(y)$, $p(y|x)$}
 \KwOutput{$\hat\phi^{(i)}_0(x)$, $\phi^{(i)}_1(y)$}
 Initialize $\phi_0^{(0)}(x)$ s.t. $\phi_0^{(0)}(x)<<\pi_0(x)$\;
@@ -160,70 +211,13 @@ Initialize $\phi_0^{(0)}(x)$ s.t. $\phi_0^{(0)}(x)<<\pi_0(x)$\;
 \end{algorithm}
 
 \section{Related works}
-\label{sec:headings}
 \subsection{Diffusion Schrodinger Bridge Matching (DSBM)}
-Authors proposed new method of solving SBP in dynamic way using Iterative Markovian Fitting
+\citet{dsbm}  proposed new method of solving SBP in dynamic way using Iterative Markovian Fitting
 \subsection{Diffusion Schrodinger Bridge with Applications to Score-Based Generative Modeling}
-Authors proposed using SBP in dynamic way to build generative model
+\citet{dsb} proposed using SBP in dynamic way to build generative model
 
 
-\section{Examples of citations, figures, tables, references}
-\label{sec:others}
-
-\subsection{Citations}
-Citations use \verb+natbib+. The documentation may be found at
-\begin{center}
-	\url{http://mirrors.ctan.org/macros/latex/contrib/natbib/natnotes.pdf}
-\end{center}
-
-Here is an example usage of the two main commands (\verb+citet+ and \verb+citep+): Some people thought a thing \citep{kour2014real, hadash2018estimate} but other people thought something else \citep{kour2014fast}. Many people have speculated that if we knew exactly why \citet{kour2014fast} thought this\dots
-
-\subsection{Figures}
-\lipsum[10]
-See Figure \ref{fig:fig1}. Here is how you add footnotes. \footnote{Sample of the first footnote.}
-\lipsum[11]
-
-\begin{figure}
-	\centering
-	\includegraphics[width=0.5\textwidth]{../figures/log_reg_cs_exp.eps}
-	\caption{Sample figure caption.}
-	\label{fig:fig1}
-\end{figure}
-
-\subsection{Tables}
-See awesome Table~\ref{tab:table}.
-
-The documentation for \verb+booktabs+ (`Publication quality tables in LaTeX') is available from:
-\begin{center}
-	\url{https://www.ctan.org/pkg/booktabs}
-\end{center}
-
-
-\begin{table}
-	\caption{Sample table title}
-	\centering
-	\begin{tabular}{lll}
-		\toprule
-		\multicolumn{2}{c}{Part}                   \\
-		\cmidrule(r){1-2}
-		Name     & Description     & Size ($\mu$m) \\
-		\midrule
-		Dendrite & Input terminal  & $\sim$100     \\
-		Axon     & Output terminal & $\sim$10      \\
-		Soma     & Cell body       & up to $10^6$  \\
-		\bottomrule
-	\end{tabular}
-	\label{tab:table}
-\end{table}
-
-\subsection{Lists}
-\begin{itemize}
-	\item Lorem ipsum dolor sit amet
-	\item consectetur adipiscing elit.
-	\item Aliquam dignissim blandit est, in dictum tortor gravida eget. In ac rutrum magna.
-\end{itemize}
-
-
+% \bibliographystyle{acm}
 \bibliographystyle{unsrtnat}
 \bibliography{references}
 
