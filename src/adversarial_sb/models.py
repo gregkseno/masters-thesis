@@ -238,7 +238,7 @@ class UpSampleConv(nn.Module):
 
 class Discriminator(nn.Module):
     def __init__(self, in_channels: int = 3, divergence: str = 'forward_kl'):
-        super(Discriminator, self).__init__()
+        super().__init__()
 
         def critic_block(in_filters, out_filters, normalization=True):
             """Returns layers of each critic block"""
@@ -260,9 +260,9 @@ class Discriminator(nn.Module):
         self.activation = Activation(divergence)
         self.conjugate = Conjugate(divergence)
 
-    def forward(self, x, y, activation=False, conjugate=False):
+    def forward(self, x, y, conjugate=False):
         x_y = torch.cat([x, y], dim=1)
-        x_y = self.net(x_y) if not activation else self.activation(self.net(x_y))
+        x_y = self.activation(self.net(x_y))
         return x_y if not conjugate else self.conjugate(x_y)    
 
 class Generator(nn.Module):
@@ -276,6 +276,7 @@ class Generator(nn.Module):
         self.decoding_layer2_ = UpSampleConv(256, 128)
         self.decoding_layer1_ = UpSampleConv(128, 64)
         self.output = nn.Conv2d(64, out_channels, kernel_size=1)
+        self.tanh = nn.Tanh()
         self.dropout = nn.Dropout2d(0.2)
         
     def forward(self, x):
@@ -297,7 +298,7 @@ class Generator(nn.Module):
         d1 = self.decoding_layer1_(d2, e1)
         
         ###################### Output #########################
-        output = self.output(d1)
+        output = self.tanh(self.output(d1))
         return output
     
 
