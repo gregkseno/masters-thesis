@@ -157,7 +157,7 @@ class AdversarialIPFPTrainer:
             losses['disc_b_training'].append(total_loss_disc_b_training / len(dataloader))
 
             if step % 2 == 0:
-                print(f'Backward cond_p: {losses['cond_p'][-1]:.5f}, disc_b_fixed: {losses['disc_b_fixed'][-1]:.5f}, disc_b_training: {losses['disc_b_training'][-1]:.5f}')
+                print(f'Backward cond_p: {losses["cond_p"][-1]:.5f}, disc_b_fixed: {losses["disc_b_fixed"][-1]:.5f}, disc_b_training: {losses["disc_b_training"][-1]:.5f}')
 
         return losses
     
@@ -190,7 +190,7 @@ class AdversarialIPFPTrainer:
             losses['disc_f_training'].append(total_loss_disc_f_training / len(dataloader))
 
             if step % 2 == 0:
-                print(f'Forward cond_q: {losses['cond_q'][-1]:.5f}, disc_f_fixed: {losses['disc_f_fixed'][-1]:.5f}, disc_f_training: {losses['disc_f_training'][-1]:.5f}')
+                print(f'Forward cond_q: {losses["cond_q"][-1]:.5f}, disc_f_fixed: {losses["disc_f_fixed"][-1]:.5f}, disc_f_training: {losses["disc_f_training"][-1]:.5f}')
         return losses
     
 
