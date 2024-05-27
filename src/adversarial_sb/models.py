@@ -1,9 +1,12 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
+import wandb
 from tqdm.auto import tqdm
+
+from adversarial_sb.style_gan.models import Generator, Discriminator
 
 
 def get_simple_model(
@@ -53,8 +56,8 @@ class Activation(nn.Module):
 class SimpleConditional(nn.Module):
     loss_titles = {
         'loss_gen': 'Generator loss', 
-        'loss_disc_real': 'Discriminator real loss', 
-        'loss_disc_fake': 'Discriminator fake loss'
+        'loss_disc_real': 'Critic real loss', 
+        'loss_disc_fake': 'Critic fake loss'
     }
 
     def __init__(
@@ -158,7 +161,7 @@ class SimpleConditional(nn.Module):
         return loss_real.item(), loss_fake.item()
     
 
-class SimpleDiscriminator(nn.Module):
+class SimpleCritic(nn.Module):
     def __init__(
         self, 
         in_dim: int,
@@ -188,75 +191,11 @@ class SimpleDiscriminator(nn.Module):
                 layer.reset_parameters()
     
 
-class ResBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
-        super().__init__()
-        self.layer = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, stride=stride, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3,padding=1, stride=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
-
-        self.identity_map = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride)
-        self.relu = nn.ReLU(inplace=True)
-    def forward(self, inputs):
-        x = inputs.clone().detach()
-        out = self.layer(x)
-        residual  = self.identity_map(inputs)
-        skip = out + residual
-        return self.relu(skip)
-    
-
-class DownSampleConv(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.layer = nn.Sequential(
-            nn.MaxPool2d(2),
-            ResBlock(in_channels, out_channels)
-        )
-
-    def forward(self, inputs):
-        return self.layer(inputs)
-    
-
-class UpSampleConv(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        
-        self.upsample = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
-        self.res_block = ResBlock(in_channels + out_channels, out_channels)
-        
-    def forward(self, inputs, skip):
-        x = self.upsample(inputs)
-        x = torch.cat([x, skip], dim=1)
-        x = self.res_block(x)
-        return x
-    
-
-class Discriminator(nn.Module):
-    def __init__(self, in_channels: int = 3, divergence: str = 'forward_kl'):
+class Critic(nn.Module):
+    def __init__(self, divergence: str = 'forward_kl'):
         super().__init__()
 
-        def critic_block(in_filters, out_filters, normalization=True):
-            """Returns layers of each critic block"""
-            layers: list[nn.Module] = [nn.Conv2d(in_filters, out_filters, 4, stride=2, padding=1)]
-            if normalization:
-                layers.append(nn.InstanceNorm2d(out_filters))
-            layers.append(nn.LeakyReLU(0.2, inplace=True))
-            return layers
-
-        self.net = nn.Sequential(
-            *critic_block(in_channels, 64, normalization=False),
-            *critic_block(64, 128),
-            *critic_block(128, 256),
-            *critic_block(256, 512),
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(512, 1)
-        )
+        self.net = Discriminator(in_channels=6)
         self.activation = Activation(divergence)
         self.conjugate = Conjugate(divergence)
 
@@ -265,58 +204,39 @@ class Discriminator(nn.Module):
         x_y = self.activation(self.net(x_y))
         return x_y if not conjugate else self.conjugate(x_y)    
 
-class Generator(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int):
-        super().__init__()
-        self.encoding_layer1_ = ResBlock(in_channels, 64)
-        self.encoding_layer2_ = DownSampleConv(64, 128)
-        self.encoding_layer3_ = DownSampleConv(128, 256)
-        self.bridge = DownSampleConv(256, 512)
-        self.decoding_layer3_ = UpSampleConv(512, 256)
-        self.decoding_layer2_ = UpSampleConv(256, 128)
-        self.decoding_layer1_ = UpSampleConv(128, 64)
-        self.output = nn.Conv2d(64, out_channels, kernel_size=1)
-        self.tanh = nn.Tanh()
-        self.dropout = nn.Dropout2d(0.2)
-        
-    def forward(self, x):
-        ###################### Enocoder #########################
-        e1 = self.encoding_layer1_(x)
-        e1 = self.dropout(e1)
-        e2 = self.encoding_layer2_(e1)
-        e2 = self.dropout(e2)
-        e3 = self.encoding_layer3_(e2)
-        e3 = self.dropout(e3)
-        
-        ###################### Bridge #########################
-        bridge = self.bridge(e3)
-        bridge = self.dropout(bridge)
-        
-        ###################### Decoder #########################
-        d3 = self.decoding_layer3_(bridge, e3)
-        d2 = self.decoding_layer2_(d3, e2)
-        d1 = self.decoding_layer1_(d2, e1)
-        
-        ###################### Output #########################
-        output = self.tanh(self.output(d1))
-        return output
-    
 
 class Conditional(nn.Module):
     loss_titles = {
         'loss_gen': 'Generator loss', 
-        'loss_disc_real': 'Discriminator real loss', 
-        'loss_disc_fake': 'Discriminator fake loss'
+        'loss_disc_real': 'Critic real loss', 
+        'loss_disc_fake': 'Critic fake loss'
     }
 
     def __init__(self):
         super().__init__()
-        self.gen = Generator(6, 3)
+        self.gen = Generator(in_channels=6, out_channels=3)
         self.latent_dist = lambda shape: torch.normal(mean=0., std=1., size=shape)
 
     def forward(self, x):
         z_x = torch.cat([self.latent_dist(x.shape).to(x.device), x], dim=1)
         return self.gen(z_x)
+    
+    @torch.no_grad
+    def _log(
+        self,
+        losses: dict[str, list[float]],
+        dataset: Dataset
+    ):
+        self.gen.eval()
+        x, y = dataset[42]
+        x = x.to(self._device).unsqueeze(0)
+
+        y_fake = wandb.Image(self(x).cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Fake Photo")
+        y = wandb.Image(y.squeeze().permute(1, 2, 0).numpy(), caption="Photo")
+        wandb.log({'Photo': y, 'Fake Photo': y_fake})
+        wandb.log({key: loss[-1] for key, loss in losses.items()})
+
+        self.gen.train()
     
     def init_conditional(
         self, 
@@ -327,7 +247,7 @@ class Conditional(nn.Module):
         lr_gen: float
     ):
         self._device = next(self.gen.parameters()).device
-        self._disc = Discriminator(6).to(self._device)
+        self._disc = Critic().to(self._device)
         self._real_dist = lambda mean: torch.normal(mean=mean, std=gamma)
         self._criterion = nn.BCELoss()
         self._optim_disc = torch.optim.Adam(self._disc.parameters(), lr=lr_disc)
@@ -349,6 +269,8 @@ class Conditional(nn.Module):
             losses['loss_gen'].append(total_gen / len(loader))
             losses['loss_disc_real'].append(total_disc_real / len(loader))
             losses['loss_disc_fake'].append(total_disc_fake / len(loader))
+
+            self._log(losses, loader.dataset)
             if epoch % 20 == 0:
                 print(f"gen Loss: {losses['loss_gen'][-1]}, disc Real Loss: {losses['loss_disc_real'][-1]}, disc Fake Loss: {losses['loss_disc_fake'][-1]}")
         return losses
@@ -387,3 +309,4 @@ class Conditional(nn.Module):
         self._optim_disc.step()
         
         return loss_real.item(), loss_fake.item()
+        

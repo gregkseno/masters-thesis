@@ -51,18 +51,16 @@ class ImageDataset(Dataset):
     def __init__(
             self, 
             base_path,
-            height: int = 224,
-            width: int = 224,
+            size: tuple = (256, 256),
             unaligned=False,
             mode='train'
         ):
         self.transform = transforms.Compose([
-            transforms.Resize(int(height * 1.12), InterpolationMode.BICUBIC),
-            transforms.RandomCrop((height, width)),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                transforms.Resize(size),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))                                
         ])
+
         self.unaligned = unaligned
         self.mode = mode
         if self.mode == 'train':

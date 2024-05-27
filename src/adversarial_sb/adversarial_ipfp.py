@@ -3,9 +3,10 @@ from typing import Optional
 import torch
 from torch import nn
 from torch.optim import AdamW, Optimizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torch.nn.utils import clip_grad_norm_
 
+import wandb
 from tqdm.auto import tqdm
 
 
@@ -14,10 +15,10 @@ class AdversarialIPFPTrainer:
     loss_titles = {
         'cond_p': 'p(x|y) loss',
         'cond_q': 'q(y|x) loss',
-        'disc_b_fixed': 'Backward fixed discriminator loss',
-        'disc_f_fixed': 'Forward fixed discriminator loss',
-        'disc_b_training': 'Backward training discriminator loss',
-        'disc_f_training': 'Forward training discriminator loss'
+        'disc_b_fixed': 'Backward fixed critic loss',
+        'disc_f_fixed': 'Forward fixed critic loss',
+        'disc_b_training': 'Backward training critic loss',
+        'disc_f_training': 'Forward training critic loss'
     }
 
     def __init__(
@@ -26,8 +27,8 @@ class AdversarialIPFPTrainer:
         cond_q: nn.Module,
         disc_b: nn.Module,
         disc_f: nn.Module,
-        lr_gen: Optional[dict[str, float]] = None,
-        lr_disc: Optional[dict[str, float]] = None,
+        lr_gen: dict[str, float],
+        lr_disc: dict[str, float],
         clip: float = 0.1,
         device: str = 'cpu'
     ):
@@ -35,17 +36,6 @@ class AdversarialIPFPTrainer:
         self.cond_q = cond_q  # y|x
         self.disc_b = disc_b
         self.disc_f = disc_f
-
-        if lr_gen is None:
-            lr_gen = {
-                'forward': 1e-4,
-                'backward': 1e-4,
-            }
-        if lr_disc is None:
-            lr_disc = {
-                'forward': 1e-4,
-                'backward': 1e-4,
-            }
         self.clip = clip
 
         self.optim_gen: dict[str, Optimizer] = {
@@ -193,6 +183,31 @@ class AdversarialIPFPTrainer:
                 print(f'Forward cond_q: {losses["cond_q"][-1]:.5f}, disc_f_fixed: {losses["disc_f_fixed"][-1]:.5f}, disc_f_training: {losses["disc_f_training"][-1]:.5f}')
         return losses
     
+    @torch.no_grad
+    def _log(
+        self,
+        losses: dict[str, list[float]],
+        dataset: Dataset
+    ):
+        self.cond_p.eval()
+        self.cond_q.eval()
+        x, y = dataset[42]
+        x, y = x.to(self.device).unsqueeze(0), y.to(self.device).unsqueeze(0)
+
+        y_fake = wandb.Image(self.cond_q(x).squeeze().cpu().permute(1, 2, 0).detach().numpy(), caption="Fake Photo")
+        x = wandb.Image(x.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Monet")
+        x_fake = wandb.Image(self.cond_p(y).cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Fake Monet")
+        y = wandb.Image(y.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Photo")
+        
+        wandb.log({'Monet': x, 'Fake Photo': y_fake, 'Photo': y, 'Fake Monet': x_fake})
+        wandb.log({key: loss[-1] for key, loss in losses.items() if len(loss) != 0})
+
+        torch.save(self.cond_p.state_dict().cpu(), '../models/conditional_p.pt')
+        torch.save(self.cond_q.state_dict().cpu(), '../models/conditional_q.pt')
+
+        self.cond_p.train()
+        self.cond_q.train()
+    
 
     def train(
         self,
@@ -211,7 +226,12 @@ class AdversarialIPFPTrainer:
 
         for epoch in tqdm(range(epochs), desc='Epochs'):
             print(f'======= Epoch {epoch} =======')
-            self._train_backward(dataloader, losses, inner_steps)
-            self._train_forward(dataloader, losses, inner_steps)
+            losses = self._train_backward(dataloader, losses, inner_steps)
+            if epoch % 2 == 0:
+                self._log(losses, dataloader.dataset)
+            
+            losses = self._train_forward(dataloader, losses, inner_steps)
+            if epoch % 2 == 0:
+                self._log(losses, dataloader.dataset)
         
         return losses
