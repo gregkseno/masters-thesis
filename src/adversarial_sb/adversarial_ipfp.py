@@ -202,8 +202,8 @@ class AdversarialIPFPTrainer:
         wandb.log({'Monet': x, 'Fake Photo': y_fake, 'Photo': y, 'Fake Monet': x_fake})
         wandb.log({key: loss[-1] for key, loss in losses.items() if len(loss) != 0})
 
-        torch.save(self.cond_p.state_dict().cpu(), '../models/conditional_p.pt')
-        torch.save(self.cond_q.state_dict().cpu(), '../models/conditional_q.pt')
+        torch.save(self.cond_p.state_dict(), '../models/conditional_p.pt')
+        torch.save(self.cond_q.state_dict(), '../models/conditional_q.pt')
 
         self.cond_p.train()
         self.cond_q.train()
