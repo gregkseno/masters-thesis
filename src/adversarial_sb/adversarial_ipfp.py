@@ -204,8 +204,8 @@ class AdversarialIPFPTrainer:
 
         torch.save(self.cond_p.state_dict(), '../models/conditional_p.pt')
         torch.save(self.cond_q.state_dict(), '../models/conditional_q.pt')
-        wandb.save('../models/conditional_p.pt')
-        wandb.save('../models/conditional_q.pt')
+        # wandb.save('../models/conditional_p.pt')
+        # wandb.save('../models/conditional_q.pt')
 
         self.cond_p.train()
         self.cond_q.train()
