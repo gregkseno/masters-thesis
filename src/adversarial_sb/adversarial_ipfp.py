@@ -30,7 +30,8 @@ class AdversarialIPFPTrainer:
         lr_gen: dict[str, float],
         lr_disc: dict[str, float],
         clip: float = 0.1,
-        device: str = 'cpu'
+        device: str = 'cpu',
+        log_path: str = './'
     ):
         self.cond_p = cond_p  # x|y
         self.cond_q = cond_q  # y|x
@@ -48,6 +49,7 @@ class AdversarialIPFPTrainer:
         }
         
         self.device = device
+        self.log_path = log_path
 
     def _backward_step(self, x: torch.Tensor, y:  torch.Tensor):
         loss_cond = self._train_step_gen(y, self.cond_p, self.disc_b, self.optim_gen, step='backward')
@@ -202,8 +204,8 @@ class AdversarialIPFPTrainer:
         wandb.log({'Monet': x, 'Fake Photo': y_fake, 'Photo': y, 'Fake Monet': x_fake})
         wandb.log({key: loss[-1] for key, loss in losses.items() if len(loss) != 0})
 
-        torch.save(self.cond_p.state_dict(), '../models/conditional_p.pt')
-        torch.save(self.cond_q.state_dict(), '../models/conditional_q.pt')
+        torch.save(self.cond_p.state_dict(), self.log_path + 'conditional_p.pt')
+        torch.save(self.cond_q.state_dict(), self.log_path + 'conditional_q.pt')
         # wandb.save('../models/conditional_p.pt')
         # wandb.save('../models/conditional_q.pt')
 

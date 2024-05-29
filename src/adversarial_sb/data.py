@@ -53,7 +53,6 @@ class ImageDataset(Dataset):
             base_path,
             size: tuple = (256, 256),
             unaligned=False,
-            mode='train'
         ):
         self.transform = transforms.Compose([
                 transforms.Resize(size),
@@ -62,13 +61,9 @@ class ImageDataset(Dataset):
         ])
 
         self.unaligned = unaligned
-        self.mode = mode
-        if self.mode == 'train':
-            self.files_a = sorted(glob.glob(os.path.join(base_path+'/monet_jpg')+'/*.*')[:250])
-            self.files_b = sorted(glob.glob(os.path.join(base_path+'/photo_jpg')+'/*.*')[:250])
-        elif self.mode == 'test':
-            self.files_a = sorted(glob.glob(os.path.join(base_path+'/monet_jpg')+'/*.*')[250:])
-            self.files_b = sorted(glob.glob(os.path.join(base_path+'/photo_jpg')+'/*.*')[250:301])
+        self.files_a = sorted(glob.glob(os.path.join(base_path+'/monet_jpg')+'/*.*'))
+        self.files_b = sorted(glob.glob(os.path.join(base_path+'/photo_jpg')+'/*.*'))
+
 
     def  __getitem__(self, index):
         image_a = Image.open(self.files_a[index % len(self.files_a)])
