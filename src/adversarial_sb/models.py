@@ -235,7 +235,7 @@ class Conditional(nn.Module):
         x = x.to(self._device).unsqueeze(0)
         y_fake = wandb.Image(self(x).cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Fake Photo")
         y = wandb.Image(y.permute(1, 2, 0).numpy(), caption="Photo")
-        wandb.log({'Init Photo': y, 'Init Fake Photo': y_fake}, step=step)
+        wandb.log({'Init Letter': y, 'Init Fake Letter': y_fake}, step=step)
         wandb.log({key: loss[-1] for key, loss in losses.items()}, step=step)
 
         self.gen.train()

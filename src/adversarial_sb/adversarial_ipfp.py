@@ -197,12 +197,12 @@ class AdversarialIPFPTrainer:
         x, y = dataset[42]
         x, y = x.to(self.device).unsqueeze(0), y.to(self.device).unsqueeze(0)
 
-        y_fake = wandb.Image(self.cond_q(x).squeeze().cpu().permute(1, 2, 0).detach().numpy(), caption="Fake Photo")
-        x = wandb.Image(x.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Monet")
-        x_fake = wandb.Image(self.cond_p(y).cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Fake Monet")
-        y = wandb.Image(y.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Photo")
+        y_fake = wandb.Image(self.cond_q(x).squeeze().cpu().permute(1, 2, 0).detach().numpy(), caption="Fake Letter")
+        x = wandb.Image(x.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Digit")
+        x_fake = wandb.Image(self.cond_p(y).cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Fake Digit")
+        y = wandb.Image(y.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Letter")
         
-        wandb.log({'Monet': x, 'Fake Photo': y_fake, 'Photo': y, 'Fake Monet': x_fake}, step=step)
+        wandb.log({'Digit': x, 'Fake Letter': y_fake, 'Letter': y, 'Fake Digit': x_fake}, step=step)
         wandb.log({key: loss[-1] for key, loss in losses.items() if len(loss) != 0}, step=step)
 
         torch.save(self.cond_p.state_dict(), self.log_path + 'conditional_p.pt')
