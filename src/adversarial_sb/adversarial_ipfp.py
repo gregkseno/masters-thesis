@@ -80,7 +80,7 @@ class AdversarialIPFPTrainer:
         loss = disc(latent, generated).mean()
 
         loss.backward()
-        clip_grad_norm_(cond.parameters(), self.clip)
+        # clip_grad_norm_(cond.parameters(), self.clip)
         optim[step].step()
         return loss.detach().cpu().item()
 
@@ -189,7 +189,8 @@ class AdversarialIPFPTrainer:
     def _log(
         self,
         losses: dict[str, list[float]],
-        dataset: Dataset
+        dataset: Dataset,
+        step: int
     ):
         self.cond_p.eval()
         self.cond_q.eval()
@@ -201,8 +202,8 @@ class AdversarialIPFPTrainer:
         x_fake = wandb.Image(self.cond_p(y).cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Fake Monet")
         y = wandb.Image(y.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Photo")
         
-        wandb.log({'Monet': x, 'Fake Photo': y_fake, 'Photo': y, 'Fake Monet': x_fake})
-        wandb.log({key: loss[-1] for key, loss in losses.items() if len(loss) != 0})
+        wandb.log({'Monet': x, 'Fake Photo': y_fake, 'Photo': y, 'Fake Monet': x_fake}, step=step)
+        wandb.log({key: loss[-1] for key, loss in losses.items() if len(loss) != 0}, step=step)
 
         torch.save(self.cond_p.state_dict(), self.log_path + 'conditional_p.pt')
         torch.save(self.cond_q.state_dict(), self.log_path + 'conditional_q.pt')
@@ -232,10 +233,10 @@ class AdversarialIPFPTrainer:
             print(f'======= Epoch {epoch} =======')
             losses = self._train_backward(dataloader, losses, inner_steps)
             if epoch % 2 == 0:
-                self._log(losses, dataloader.dataset)
+                self._log(losses, dataloader.dataset, epoch)
             
             losses = self._train_forward(dataloader, losses, inner_steps)
             if epoch % 2 == 0:
-                self._log(losses, dataloader.dataset)
+                self._log(losses, dataloader.dataset, epoch)
         
         return losses

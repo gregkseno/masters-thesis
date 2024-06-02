@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
+from transformers import get_cosine_schedule_with_warmup
 
 import wandb
 from tqdm.auto import tqdm
@@ -195,7 +196,7 @@ class Critic(nn.Module):
     def __init__(self, divergence: str = 'forward_kl'):
         super().__init__()
 
-        self.net = Discriminator(in_channels=6)
+        self.net = Discriminator(in_channels=2)
         self.activation = Activation(divergence)
         self.conjugate = Conjugate(divergence)
 
@@ -214,27 +215,28 @@ class Conditional(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.gen = Generator(in_channels=6, out_channels=3)
+        self.gen = Generator(in_channels=2, out_channels=1)
         self.latent_dist = lambda shape: torch.normal(mean=0., std=1., size=shape)
 
     def forward(self, x):
         z_x = torch.cat([self.latent_dist(x.shape).to(x.device), x], dim=1)
-        return self.gen(z_x)
+        out = self.gen(z_x)
+        return out
     
     @torch.no_grad
     def _log(
         self,
         losses: dict[str, list[float]],
-        dataset: Dataset
+        dataset: Dataset,
+        step: int
     ):
         self.gen.eval()
         x, y = dataset[42]
         x = x.to(self._device).unsqueeze(0)
-
-        y_fake = wandb.Image(self(x).cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Fake Photo")
-        y = wandb.Image(y.squeeze().permute(1, 2, 0).numpy(), caption="Photo")
-        wandb.log({'Photo': y, 'Fake Photo': y_fake})
-        wandb.log({key: loss[-1] for key, loss in losses.items()})
+        y_fake = wandb.Image(self(x).cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Fake Photo")
+        y = wandb.Image(y.permute(1, 2, 0).numpy(), caption="Photo")
+        wandb.log({'Init Photo': y, 'Init Fake Photo': y_fake}, step=step)
+        wandb.log({key: loss[-1] for key, loss in losses.items()}, step=step)
 
         self.gen.train()
     
@@ -247,11 +249,14 @@ class Conditional(nn.Module):
         lr_gen: float
     ):
         self._device = next(self.gen.parameters()).device
-        self._disc = Critic().to(self._device)
+        disc = Critic().to(self._device)
         self._real_dist = lambda mean: torch.normal(mean=mean, std=gamma)
         self._criterion = nn.BCELoss()
-        self._optim_disc = torch.optim.Adam(self._disc.parameters(), lr=lr_disc)
-        self._optim_gen = torch.optim.Adam(self.gen.parameters(), lr=lr_gen)
+        optim_disc = torch.optim.Adam(disc.parameters(), lr=lr_disc)
+        # sched_disc = get_cosine_schedule_with_warmup(optim_disc, 0, epochs)
+
+        optim_gen = torch.optim.Adam(self.gen.parameters(), lr=lr_gen)
+        sched_gen = get_cosine_schedule_with_warmup(optim_gen, 0, epochs)
         
         losses = {'loss_gen': [], 'loss_disc_real': [], 'loss_disc_fake': []}
 
@@ -260,8 +265,8 @@ class Conditional(nn.Module):
             total_gen = 0
             for x, _ in loader:
                 x = x.to(self._device)
-                loss_disc_real, loss_disc_fake = self._train_step_disc(x)
-                loss_gen = self._train_step_gen(x)
+                loss_disc_real, loss_disc_fake = self._train_step_disc(x, disc, optim_disc)
+                loss_gen = self._train_step_gen(x, disc, optim_gen, sched_gen)
                 
                 total_disc_real += loss_disc_real
                 total_disc_fake += loss_disc_fake
@@ -270,29 +275,30 @@ class Conditional(nn.Module):
             losses['loss_disc_real'].append(total_disc_real / len(loader))
             losses['loss_disc_fake'].append(total_disc_fake / len(loader))
 
-            self._log(losses, loader.dataset)
+            self._log(losses, loader.dataset, epoch)
             if epoch % 20 == 0:
                 print(f"gen Loss: {losses['loss_gen'][-1]}, disc Real Loss: {losses['loss_disc_real'][-1]}, disc Fake Loss: {losses['loss_disc_fake'][-1]}")
         return losses
 
-    def _train_step_gen(self, x: torch.Tensor):
+    def _train_step_gen(self, x: torch.Tensor, disc, optim, scheduler):
         bs = x.shape[0]
-        self._optim_gen.zero_grad()
+        optim.zero_grad()
         
         loss = self._criterion(
-            F.sigmoid(self._disc(self(x), x)), 
+            F.sigmoid(disc(self(x), x)), 
             torch.ones((bs, 1), device=self._device)
         )
         loss.backward()
-        self._optim_gen.step()
+        optim.step()
+        scheduler.step()
         return loss.item()
 
-    def _train_step_disc(self, x: torch.Tensor):
+    def _train_step_disc(self, x: torch.Tensor, disc, optim):
         bs = x.shape[0]
-        self._optim_disc.zero_grad()
+        optim.zero_grad()
         
         loss_real = self._criterion(
-            F.sigmoid(self._disc(self._real_dist(x), x)), 
+            F.sigmoid(disc(self._real_dist(x), x)), 
             torch.ones((bs, 1), device=self._device)
         )
 
@@ -300,13 +306,12 @@ class Conditional(nn.Module):
             y = self(x)
         
         loss_fake = self._criterion(
-            F.sigmoid(self._disc(y, x)), 
+            F.sigmoid(disc(y, x)), 
             torch.zeros((bs, 1), device=self._device)
         )
 
         loss = (loss_real + loss_fake) / 2
         loss.backward()
-        self._optim_disc.step()
-        
+        optim.step()
         return loss_real.item(), loss_fake.item()
         
