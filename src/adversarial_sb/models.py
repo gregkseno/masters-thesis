@@ -109,7 +109,7 @@ class SimpleConditional(nn.Module):
         for epoch in tqdm(range(epochs)):
             total_disc_real, total_disc_fake = 0, 0
             total_gen = 0
-            for x, _ in loader:
+            for x in loader:
                 x = x.to(self._device)
                 loss_disc_real, loss_disc_fake = self._train_step_disc(x)
                 loss_gen = self._train_step_gen(x)
@@ -231,11 +231,10 @@ class Conditional(nn.Module):
         step: int
     ):
         self.gen.eval()
-        x, y = dataset[42]
+        x = dataset[42]
         x = x.to(self._device).unsqueeze(0)
-        y_fake = wandb.Image(self(x).cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Fake Photo")
-        y = wandb.Image(y.permute(1, 2, 0).numpy(), caption="Photo")
-        wandb.log({'Init Letter': y, 'Init Fake Letter': y_fake}, step=step)
+        y_fake = wandb.Image(self(x).cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Fake Digit")
+        wandb.log({'Init Letter': x, 'Init Fake Digit': y_fake}, step=step)
         wandb.log({key: loss[-1] for key, loss in losses.items()}, step=step)
 
         self.gen.train()
@@ -263,7 +262,7 @@ class Conditional(nn.Module):
         for epoch in tqdm(range(epochs)):
             total_disc_real, total_disc_fake = 0, 0
             total_gen = 0
-            for x, _ in loader:
+            for x in loader:
                 x = x.to(self._device)
                 loss_disc_real, loss_disc_fake = self._train_step_disc(x, disc, optim_disc)
                 loss_gen = self._train_step_gen(x, disc, optim_gen, sched_gen)

@@ -123,7 +123,8 @@ class AdversarialIPFPTrainer:
 
     def _train_backward(
         self,
-        dataloader: DataLoader,
+        x_loader: DataLoader,
+        y_loader: DataLoader,
         losses: dict[str, list[float]],
         inner_steps: int = 10
     ):
@@ -134,8 +135,14 @@ class AdversarialIPFPTrainer:
             total_loss_disc_b_fixed = 0
             total_loss_disc_b_training = 0
 
-            for batch in dataloader:
-                x, y = batch
+            y_iter = iter(y_loader)
+            for x in x_loader:
+                try:
+                    y = next(y_iter)
+                except StopIteration:
+                    y_iter = iter(y_loader)
+                    y = next(y_iter)
+                    
                 x = x.to(self.device)
                 y = y.to(self.device)
 
@@ -144,9 +151,9 @@ class AdversarialIPFPTrainer:
                 total_loss_disc_b_fixed += loss_disc_b_fixed
                 total_loss_disc_b_training += loss_disc_b_training
 
-            losses['cond_p'].append(total_loss_cond_p / len(dataloader))
-            losses['disc_b_fixed'].append(total_loss_disc_b_fixed / len(dataloader))
-            losses['disc_b_training'].append(total_loss_disc_b_training / len(dataloader))
+            losses['cond_p'].append(total_loss_cond_p / len(x_loader))
+            losses['disc_b_fixed'].append(total_loss_disc_b_fixed / len(x_loader))
+            losses['disc_b_training'].append(total_loss_disc_b_training / len(x_loader))
 
             if step % 2 == 0:
                 print(f'Backward cond_p: {losses["cond_p"][-1]:.5f}, disc_b_fixed: {losses["disc_b_fixed"][-1]:.5f}, disc_b_training: {losses["disc_b_training"][-1]:.5f}')
@@ -156,7 +163,8 @@ class AdversarialIPFPTrainer:
 
     def _train_forward(
         self,
-        dataloader: DataLoader,
+        x_loader: DataLoader,
+        y_loader: DataLoader,
         losses: dict[str, list[float]],
         inner_steps: int = 10,
     ):
@@ -167,8 +175,13 @@ class AdversarialIPFPTrainer:
             total_loss_disc_f_fixed = 0
             total_loss_disc_f_training = 0
             
-            for batch in dataloader:
-                x, y = batch
+            y_iter = iter(y_loader)
+            for x in x_loader:
+                try:
+                    y = next(y_iter)
+                except StopIteration:
+                    y_iter = iter(y_loader)
+                    y = next(y_iter)
                 x = x.to(self.device)
                 y = y.to(self.device)
 
@@ -177,9 +190,9 @@ class AdversarialIPFPTrainer:
                 total_loss_disc_f_fixed += loss_disc_f_fixed
                 total_loss_disc_f_training += loss_disc_f_training
 
-            losses['cond_q'].append(total_loss_cond_q / len(dataloader))
-            losses['disc_f_fixed'].append(total_loss_disc_f_fixed / len(dataloader))
-            losses['disc_f_training'].append(total_loss_disc_f_training / len(dataloader))
+            losses['cond_q'].append(total_loss_cond_q / len(x_loader))
+            losses['disc_f_fixed'].append(total_loss_disc_f_fixed / len(x_loader))
+            losses['disc_f_training'].append(total_loss_disc_f_training / len(x_loader))
 
             if step % 2 == 0:
                 print(f'Forward cond_q: {losses["cond_q"][-1]:.5f}, disc_f_fixed: {losses["disc_f_fixed"][-1]:.5f}, disc_f_training: {losses["disc_f_training"][-1]:.5f}')
@@ -189,20 +202,21 @@ class AdversarialIPFPTrainer:
     def _log(
         self,
         losses: dict[str, list[float]],
-        dataset: Dataset,
+        x: Dataset,
+        y: Dataset,
         step: int
     ):
         self.cond_p.eval()
         self.cond_q.eval()
-        x, y = dataset[42]
-        x, y = x.to(self.device).unsqueeze(0), y.to(self.device).unsqueeze(0)
+        x, y = x[42], y[42]
+        x, y = x.to(self.device).unsqueeze(0), y.to(self.device).unsqueeze(0) # type: ignore
 
-        y_fake = wandb.Image(self.cond_q(x).squeeze().cpu().permute(1, 2, 0).detach().numpy(), caption="Fake Letter")
-        x = wandb.Image(x.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Digit")
-        x_fake = wandb.Image(self.cond_p(y).cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Fake Digit")
-        y = wandb.Image(y.cpu().squeeze().permute(1, 2, 0).detach().numpy(), caption="Letter")
+        y_fake = wandb.Image(self.cond_q(x).squeeze(0).cpu().permute(1, 2, 0).detach().numpy(), caption="Fake Digit")
+        x = wandb.Image(x.cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Letter") # type: ignore
+        x_fake = wandb.Image(self.cond_p(y).cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Fake Letter")
+        y = wandb.Image(y.cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Digit") # type: ignore
         
-        wandb.log({'Digit': x, 'Fake Letter': y_fake, 'Letter': y, 'Fake Digit': x_fake}, step=step)
+        wandb.log({'Letter': x, 'Fake Digit': y_fake, 'Digit': y, 'Fake Letter': x_fake}, step=step)
         wandb.log({key: loss[-1] for key, loss in losses.items() if len(loss) != 0}, step=step)
 
         torch.save(self.cond_p.state_dict(), self.log_path + 'conditional_p.pt')
@@ -217,7 +231,8 @@ class AdversarialIPFPTrainer:
     def train(
         self,
         epochs: int,
-        dataloader: DataLoader,
+        x_loader: DataLoader,
+        y_loader: DataLoader,
         inner_steps: int = 10
     ) -> dict[str, list[float]]:
         losses = {
@@ -231,12 +246,12 @@ class AdversarialIPFPTrainer:
 
         for epoch in tqdm(range(epochs), desc='Epochs'):
             print(f'======= Epoch {epoch} =======')
-            losses = self._train_backward(dataloader, losses, inner_steps)
-            if epoch % 2 == 0:
-                self._log(losses, dataloader.dataset, epoch)
+            losses = self._train_backward(x_loader, y_loader, losses, inner_steps)
+            if epoch % 2 == 0 and wandb.run is not None:
+                self._log(losses, x_loader.dataset, y_loader.dataset, epoch)
             
-            losses = self._train_forward(dataloader, losses, inner_steps)
-            if epoch % 2 == 0:
-                self._log(losses, dataloader.dataset, epoch)
+            losses = self._train_forward(x_loader, y_loader, losses, inner_steps)
+            if epoch % 2 == 0 and wandb.run is not None:
+                self._log(losses, x_loader.dataset, y_loader.dataset, epoch)
         
         return losses

@@ -16,29 +16,31 @@ from torchvision.utils import make_grid
 def visualize_sb(
     cond_p: nn.Module, 
     cond_q: nn.Module, 
-    dataset: Dataset,
+    x: Dataset,
+    y: Dataset,
     num_samples: int = 1_000,
     x_title: str = 'X',
     y_title: str = 'Y',
 ):
     num_samples -= 1
-    assert num_samples < len(dataset), 'Number of samples is larger than dataset length' # type: ignore
+    assert num_samples < len(x), 'Number of samples is larger than dataset length' # type: ignore
+    assert num_samples < len(y), 'Number of samples is larger than dataset length' # type: ignore
     
-    x, y = dataset[:num_samples, :num_samples]
-    columns: dict[str, Any] = {'x': 'x', 'y': 'y'} if x.shape[1] == 2 else {'x': 'x'}
+    x, y = x[:num_samples], y[:num_samples]
+    columns: dict[str, Any] = {'x': 'x', 'y': 'y'} if x.shape[1] == 2 else {'x': 'x'} # type: ignore
 
     fake_x = pd.DataFrame(cond_p(y).detach().numpy(), columns=list(columns.values()))
     fake_y = pd.DataFrame(cond_q(x).detach().numpy(), columns=list(columns.values()))
-    x = pd.DataFrame(x.numpy(), columns=list(columns.values()))
-    y = pd.DataFrame(y.numpy(), columns=list(columns.values()))
+    x = pd.DataFrame(x.numpy(), columns=list(columns.values())) # type: ignore
+    y = pd.DataFrame(y.numpy(), columns=list(columns.values())) # type: ignore
     
     _, axs = plt.subplots(2, 2, figsize=(12, 8))
-    sns.kdeplot(x, fill=True, ax=axs[0][0], **columns)
+    sns.kdeplot(x, fill=True, ax=axs[0][0], **columns) # type: ignore
     axs[0][0].set_title(f'{x_title}')
     sns.kdeplot(fake_y, fill=True, color='r', ax=axs[0][1], **columns)
     axs[0][1].set_title(f'Fake {y_title}')
 
-    sns.kdeplot(y, fill=True, ax=axs[1][0], **columns)
+    sns.kdeplot(y, fill=True, ax=axs[1][0], **columns) # type: ignore
     axs[1][0].set_title(f'{y_title}')
     sns.kdeplot(fake_x, fill=True, color='r', ax=axs[1][1],  **columns)
     axs[1][1].set_title(f'Fake {x_title}')
@@ -46,19 +48,22 @@ def visualize_sb(
 
 def visualize_gan(
     gan: nn.Module, 
-    dataset: Dataset,
+    x: Dataset,
+    y: Dataset,
     num_samples: int = 1_000,
 ):
     num_samples -= 1
-    assert num_samples < len(dataset), 'Number of samples is larger than dataset length' # type: ignore
+    assert num_samples < len(x), 'Number of samples is larger than dataset length' # type: ignore
+    assert num_samples < len(y), 'Number of samples is larger than dataset length' # type: ignore
     
-    x, y = dataset[:num_samples, :num_samples]
-    columns: dict[str, Any] = {'x': 'x', 'y': 'y'} if x.shape[1] == 2 else {'x': 'x'}
+    x = x[:num_samples]
+    y = y[:num_samples]
+    columns: dict[str, Any] = {'x': 'x', 'y': 'y'} if x.shape[1] == 2 else {'x': 'x'} # type: ignore
 
     generated = pd.DataFrame(gan(x).detach().numpy(), columns=list(columns.values())).assign(Type='Generated')
-    y = pd.DataFrame(y.numpy(), columns=list(columns.values())).assign(Type='Real')
+    y = pd.DataFrame(y.numpy(), columns=list(columns.values())).assign(Type='Real') # type: ignore
 
-    both = pd.concat([generated, y], axis=0)
+    both = pd.concat([generated, y], axis=0) # type: ignore
     
     sns.kdeplot(both, hue='Type', fill=True, **columns)
 
@@ -84,7 +89,7 @@ def visualize_sb_images(
     y_title: str = 'Y',
     figsize: tuple[int, int] | None = None,
 ):
-    idx = random.choice(range(len(dataset)))
+    idx = random.choice(range(len(dataset))) # type: ignore
     x, y = dataset[idx]
     with torch.no_grad():
         x_fake = cond_p(y.unsqueeze(0)).detach()
@@ -128,7 +133,7 @@ def visualize_gan_images(
     title: str = 'Y',
     figsize: tuple[int, int] | None = None,
 ):
-    idx = random.choice(range(len(dataset)))
+    idx = random.choice(range(len(dataset))) # type: ignore
     x, y = dataset[idx]
     with torch.no_grad():
         y_fake = gan(x.unsqueeze(0)).detach()
