@@ -82,15 +82,16 @@ def visualize_losses(
 def visualize_sb_images(
     cond_p: nn.Module, 
     cond_q: nn.Module, 
-    dataset: Dataset,
+    x: Dataset,
+    y: Dataset,
     num_samples: int = 1,
     title: str = 'Samples',
     x_title: str = 'X',
     y_title: str = 'Y',
     figsize: tuple[int, int] | None = None,
 ):
-    idx = random.choice(range(len(dataset))) # type: ignore
-    x, y = dataset[idx]
+    idx = random.choice(range(len(x))) # type: ignore
+    x, y = x[idx], y[idx]
     with torch.no_grad():
         x_fake = cond_p(y.unsqueeze(0)).detach()
         y_fake = cond_q(x.unsqueeze(0)).detach()
@@ -128,17 +129,17 @@ def visualize_sb_images(
 
 def visualize_gan_images(
     gan: nn.Module, 
-    dataset: Dataset,
+    x: Dataset,
     num_samples: int = 1,
     title: str = 'Y',
     figsize: tuple[int, int] | None = None,
 ):
-    idx = random.choice(range(len(dataset))) # type: ignore
-    x, y = dataset[idx]
+    idx = random.choice(range(len(x))) # type: ignore
+    x = x[idx]
     with torch.no_grad():
         y_fake = gan(x.unsqueeze(0)).detach()
 
-    y = (make_grid(y, nrow=num_samples).permute(1, 2, 0) + 1) / 2
+    x = (make_grid(x, nrow=num_samples).permute(1, 2, 0) + 1) / 2
     y_fake = (make_grid(y_fake, nrow=num_samples).permute(1, 2, 0) + 1) / 2
 
     if figsize is None:
@@ -147,7 +148,7 @@ def visualize_gan_images(
     _, axs = plt.subplots(1, 2, figsize=figsize)
 
     axs[0].set_title(f'{title}')
-    axs[0].imshow(y)
+    axs[0].imshow(x)
     axs[0].axis('off')
 
     axs[1].set_title(f'Generated {title}')
