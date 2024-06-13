@@ -90,17 +90,24 @@ def visualize_sb_images(
     y_title: str = 'Y',
     figsize: tuple[int, int] | None = None,
 ):
-    idx = random.choice(range(len(x))) # type: ignore
-    x, y = x[idx], y[idx]
+    idx = random.choice(range(len(y))) # type: ignore
+    x_ = []
+    y_ = []
+    for i in range(idx, idx + num_samples):
+        x_.append(torch.tensor(x[i]))
+        y_.append(torch.tensor(y[i]))
+    x = torch.stack(x_, dim=0)
+    y = torch.stack(y_, dim=0)
+
     with torch.no_grad():
-        x_fake = cond_p(y.unsqueeze(0)).detach()
-        y_fake = cond_q(x.unsqueeze(0)).detach()
+        x_fake = cond_p(y).detach().reshape(num_samples, 1, 28, 28).transpose(3, 2)
+        y_fake = cond_q(x).detach().reshape(num_samples, 1, 28, 28).transpose(3, 2)
 
-    x = (make_grid(x, nrow=num_samples).permute(1, 2, 0) + 1) / 2
-    y = (make_grid(y, nrow=num_samples).permute(1, 2, 0) + 1) / 2
+    x = (make_grid(x.reshape(num_samples, 1, 28, 28).transpose(3, 2), nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2
+    y = (make_grid(y.reshape(num_samples, 1, 28, 28).transpose(3, 2), nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2
 
-    x_fake = (make_grid(x_fake, nrow=num_samples).permute(1, 2, 0) + 1) / 2
-    y_fake = (make_grid(y_fake, nrow=num_samples).permute(1, 2, 0) + 1) / 2
+    x_fake = (make_grid(x_fake, nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2
+    y_fake = (make_grid(y_fake, nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2
 
     if figsize is None:
         figsize = (6, 6)
@@ -116,13 +123,13 @@ def visualize_sb_images(
     axs[1][0].imshow(y)
     axs[1][0].axis('off')
 
-    axs[0][1].set_title(f'Generated {y_title}')
-    axs[0][1].imshow(x_fake)
-    axs[0][1].axis('off')
-
     axs[1][1].set_title(f'Generated {x_title}')
-    axs[1][1].imshow(y_fake)
+    axs[1][1].imshow(x_fake)
     axs[1][1].axis('off')
+
+    axs[0][1].set_title(f'Generated {y_title}')
+    axs[0][1].imshow(y_fake)
+    axs[0][1].axis('off')
     
     plt.show()
 
@@ -136,11 +143,12 @@ def visualize_gan_images(
 ):
     idx = random.choice(range(len(x))) # type: ignore
     x = x[idx]
+    x = torch.tensor(x).unsqueeze(0)
     with torch.no_grad():
-        y_fake = gan(x.unsqueeze(0)).detach()
+        y_fake = gan(x).detach().reshape(num_samples, 28, 28)
 
-    x = (make_grid(x, nrow=num_samples).permute(1, 2, 0) + 1) / 2
-    y_fake = (make_grid(y_fake, nrow=num_samples).permute(1, 2, 0) + 1) / 2
+    x = (make_grid(x.reshape(num_samples, 28, 28).transpose(2, 1), nrow=num_samples).permute(1, 2, 0) + 1) / 2
+    y_fake = (make_grid(y_fake.transpose(2, 1), nrow=num_samples).permute(1, 2, 0) + 1) / 2
 
     if figsize is None:
         figsize = (6, 6)

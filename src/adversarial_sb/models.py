@@ -17,7 +17,7 @@ def get_simple_model(
     assert len(model_dims) > 1
     modules = []
     for in_, out_ in zip(model_dims[:-2], model_dims[1:-1]):
-        modules.extend([nn.Linear(in_, out_), nn.LayerNorm(out_), activation])
+        modules.extend([nn.Linear(in_, out_), nn.BatchNorm1d(out_), activation])
     modules.append(nn.Linear(model_dims[-2], model_dims[-1]))
     return nn.Sequential(*modules)
 
@@ -72,22 +72,14 @@ class SimpleConditional(nn.Module):
         self.in_dim = in_dim
         self.hidden_dims = hidden_dims
 
-        self.embed = nn.Sequential(nn.Linear(in_dim, latent_dim), nn.ReLU())
-        self.gen = get_simple_model([2 * latent_dim] + hidden_dims + [in_dim])
+        self.embed = nn.Linear(latent_dim, in_dim)
+        self.gen = get_simple_model([2 * in_dim] + hidden_dims + [in_dim])
         self.latent_dist = lambda num: 2 * torch.rand(size=(num, latent_dim)) - 1
 
     def forward(self, x: torch.Tensor):
         bs = x.shape[0]
-        z_x = torch.cat([self.latent_dist(bs).to(x.device), self.embed(x)], dim=1)
-        return self.gen(z_x)
-    
-    def reset_params(self):
-        @torch.no_grad()
-        def weight_reset(module: nn.Module):
-            reset_parameters = getattr(module, "reset_parameters", None)
-            if callable(reset_parameters):
-                module.reset_parameters()
-        self.apply(fn=weight_reset)        
+        z_x = torch.cat([self.embed(self.latent_dist(bs).to(x.device)), x], dim=1)
+        return self.gen(z_x)       
 
     def init_conditional(
         self, 
@@ -98,11 +90,11 @@ class SimpleConditional(nn.Module):
         lr_gen: float
     ):
         self._device = next(self.gen.parameters()).device
-        self._disc = get_simple_model([2 * self.in_dim] + self.hidden_dims + [1], nn.LeakyReLU(0.2)).to(self._device)
+        self._disc = get_simple_model([2 * self.in_dim] + self.hidden_dims + [1], nn.ELU()).to(self._device)
         self._real_dist = lambda mean: torch.normal(mean=mean, std=gamma)
         self._criterion = nn.BCELoss()
-        self._optim_disc = torch.optim.AdamW(self._disc.parameters(), lr=lr_disc)
-        self._optim_gen = torch.optim.AdamW(self.gen.parameters(), lr=lr_gen)
+        self._optim_disc = torch.optim.Adam(self._disc.parameters(), lr=lr_disc)
+        self._optim_gen = torch.optim.Adam(self.gen.parameters(), lr=lr_gen)
         
         losses = {'loss_gen': [], 'loss_disc_real': [], 'loss_disc_fake': []}
 
@@ -172,7 +164,7 @@ class SimpleCritic(nn.Module):
         super().__init__()
         self.in_dim = in_dim
 
-        self.net = get_simple_model([2 * in_dim] + hidden_dims + [1],  nn.LeakyReLU(0.2))
+        self.net = get_simple_model([2 * in_dim] + hidden_dims + [1], nn.ELU())
         self.activation = Activation(divergence)
         self.conjugate = Conjugate(divergence)
 
@@ -186,21 +178,22 @@ class SimpleCritic(nn.Module):
         x_y = self.activation(self.net(x_y))
         return x_y if not conjugate else self.conjugate(x_y)
     
-    def reset_params(self):
-        for layer in self.children():
-            if hasattr(layer, 'reset_parameters'):
-                layer.reset_parameters()
-    
 
 class Critic(nn.Module):
-    def __init__(self, divergence: str = 'forward_kl'):
+    def __init__(
+        self, 
+        hidden_dims: list[int],
+        in_dim: int = 784,
+        divergence: str = 'forward_kl'
+    ):
         super().__init__()
 
-        self.net = Discriminator(in_channels=2)
+        # self.net = Discriminator(in_channels=2)
+        self.net = get_simple_model([2 * in_dim] + hidden_dims + [1], nn.ELU())
         self.activation = Activation(divergence)
         self.conjugate = Conjugate(divergence)
 
-    def forward(self, x, y, conjugate=False):
+    def forward(self, x: torch.Tensor, y: torch.Tensor, conjugate=False):
         x_y = torch.cat([x, y], dim=1)
         x_y = self.activation(self.net(x_y))
         return x_y if not conjugate else self.conjugate(x_y)    
@@ -213,15 +206,21 @@ class Conditional(nn.Module):
         'loss_disc_fake': 'Critic fake loss'
     }
 
-    def __init__(self):
+    def __init__(self, hidden_dims: list[int], in_dim: int = 784, latent_dim: int = 100):
         super().__init__()
-        self.gen = Generator(in_channels=2, out_channels=1)
-        self.latent_dist = lambda shape: torch.normal(mean=0., std=1., size=shape)
+        # self.gen = Generator(in_channels=2, out_channels=1)
 
-    def forward(self, x):
-        z_x = torch.cat([self.latent_dist(x.shape).to(x.device), x], dim=1)
-        out = self.gen(z_x)
-        return out
+        self.in_dim = in_dim
+        self.hidden_dims = hidden_dims
+
+        self.embed = nn.Linear(latent_dim, in_dim)
+        self.gen = nn.Sequential(get_simple_model([2 * in_dim] + hidden_dims + [in_dim]), nn.Tanh())
+        self.latent_dist = lambda num: 2 * torch.rand(size=(num, latent_dim)) - 1
+
+    def forward(self, x: torch.Tensor):
+        bs = x.shape[0]
+        z_x = torch.cat([self.embed(self.latent_dist(bs).to(x.device)), x], dim=1)
+        return self.gen(z_x)     
     
     @torch.no_grad
     def _log(
@@ -248,14 +247,12 @@ class Conditional(nn.Module):
         lr_gen: float
     ):
         self._device = next(self.gen.parameters()).device
-        disc = Critic().to(self._device)
+        disc = Critic(hidden_dims=self.hidden_dims[1:]).to(self._device)
         self._real_dist = lambda mean: torch.normal(mean=mean, std=gamma)
         self._criterion = nn.BCELoss()
         optim_disc = torch.optim.Adam(disc.parameters(), lr=lr_disc)
-        # sched_disc = get_cosine_schedule_with_warmup(optim_disc, 0, epochs)
 
         optim_gen = torch.optim.Adam(self.gen.parameters(), lr=lr_gen)
-        sched_gen = get_cosine_schedule_with_warmup(optim_gen, 0, epochs)
         
         losses = {'loss_gen': [], 'loss_disc_real': [], 'loss_disc_fake': []}
 
@@ -265,7 +262,7 @@ class Conditional(nn.Module):
             for x in loader:
                 x = x.to(self._device)
                 loss_disc_real, loss_disc_fake = self._train_step_disc(x, disc, optim_disc)
-                loss_gen = self._train_step_gen(x, disc, optim_gen, sched_gen)
+                loss_gen = self._train_step_gen(x, disc, optim_gen)
                 
                 total_disc_real += loss_disc_real
                 total_disc_fake += loss_disc_fake
@@ -274,12 +271,13 @@ class Conditional(nn.Module):
             losses['loss_disc_real'].append(total_disc_real / len(loader))
             losses['loss_disc_fake'].append(total_disc_fake / len(loader))
 
-            self._log(losses, loader.dataset, epoch)
-            if epoch % 20 == 0:
+            if wandb.run is not None:
+                self._log(losses, loader.dataset, epoch)
+            if epoch % 2 == 0:
                 print(f"gen Loss: {losses['loss_gen'][-1]}, disc Real Loss: {losses['loss_disc_real'][-1]}, disc Fake Loss: {losses['loss_disc_fake'][-1]}")
         return losses
 
-    def _train_step_gen(self, x: torch.Tensor, disc, optim, scheduler):
+    def _train_step_gen(self, x: torch.Tensor, disc, optim):
         bs = x.shape[0]
         optim.zero_grad()
         
@@ -289,7 +287,6 @@ class Conditional(nn.Module):
         )
         loss.backward()
         optim.step()
-        scheduler.step()
         return loss.item()
 
     def _train_step_disc(self, x: torch.Tensor, disc, optim):

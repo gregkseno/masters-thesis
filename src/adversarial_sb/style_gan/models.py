@@ -59,11 +59,12 @@ class ConvTransposeLayer(nn.Module):
 class Generator(nn.Module):
     def __init__(self, in_channels, out_channels, hidden_dim=64):
         super().__init__()       
-        self.conv1 = ConvLayer(in_channels, hidden_dim, kernel=3, stride=2)
-        self.conv2 = ConvLayer(hidden_dim, hidden_dim//2, kernel=3, stride=2)
-        self.conv_transpose1 = ConvTransposeLayer(hidden_dim//2, hidden_dim, kernel=3, stride=2)
-        self.conv_transpose2 = nn.ConvTranspose2d(hidden_dim, out_channels, kernel_size=4, stride=2)
-        self.tanh = nn.Tanh()
+        # self.conv1 = ConvLayer(in_channels, hidden_dim, kernel=3, stride=2)
+        # self.conv2 = ConvLayer(hidden_dim, hidden_dim//2, kernel=3, stride=2)
+        # self.conv_transpose1 = ConvTransposeLayer(hidden_dim//2, hidden_dim, kernel=3, stride=2)
+        # self.conv_transpose2 = nn.ConvTranspose2d(hidden_dim, out_channels, kernel_size=4, stride=2)
+        # self.tanh = nn.Tanh()
+        
     
     # forward method
     def forward(self, input): 
