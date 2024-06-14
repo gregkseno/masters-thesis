@@ -61,9 +61,9 @@ def visualize_gan(
     columns: dict[str, Any] = {'x': 'x', 'y': 'y'} if x.shape[1] == 2 else {'x': 'x'} # type: ignore
 
     generated = pd.DataFrame(gan(x).detach().numpy(), columns=list(columns.values())).assign(Type='Generated')
-    y = pd.DataFrame(y.numpy(), columns=list(columns.values())).assign(Type='Real') # type: ignore
+    x = pd.DataFrame(x.numpy(), columns=list(columns.values())).assign(Type='Real') # type: ignore
 
-    both = pd.concat([generated, y], axis=0) # type: ignore
+    both = pd.concat([generated, x], axis=0) # type: ignore
     
     sns.kdeplot(both, hue='Type', fill=True, **columns)
 
@@ -96,15 +96,15 @@ def visualize_sb_images(
     for i in range(idx, idx + num_samples):
         x_.append(torch.tensor(x[i]))
         y_.append(torch.tensor(y[i]))
-    x = torch.stack(x_, dim=0)
-    y = torch.stack(y_, dim=0)
+    x = torch.stack(x_, dim=0) # type: ignore
+    y = torch.stack(y_, dim=0) # type: ignore
 
     with torch.no_grad():
         x_fake = cond_p(y).detach().reshape(num_samples, 1, 28, 28).transpose(3, 2)
         y_fake = cond_q(x).detach().reshape(num_samples, 1, 28, 28).transpose(3, 2)
 
-    x = (make_grid(x.reshape(num_samples, 1, 28, 28).transpose(3, 2), nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2
-    y = (make_grid(y.reshape(num_samples, 1, 28, 28).transpose(3, 2), nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2
+    x = (make_grid(x.reshape(num_samples, 1, 28, 28).transpose(3, 2), nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2 # type: ignore
+    y = (make_grid(y.reshape(num_samples, 1, 28, 28).transpose(3, 2), nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2 # type: ignore
 
     x_fake = (make_grid(x_fake, nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2
     y_fake = (make_grid(y_fake, nrow=int((num_samples)**0.5)).permute(1, 2, 0) + 1) / 2
@@ -143,11 +143,11 @@ def visualize_gan_images(
 ):
     idx = random.choice(range(len(x))) # type: ignore
     x = x[idx]
-    x = torch.tensor(x).unsqueeze(0)
+    x = torch.tensor(x).unsqueeze(0) # type: ignore
     with torch.no_grad():
         y_fake = gan(x).detach().reshape(num_samples, 28, 28)
 
-    x = (make_grid(x.reshape(num_samples, 28, 28).transpose(2, 1), nrow=num_samples).permute(1, 2, 0) + 1) / 2
+    x = (make_grid(x.reshape(num_samples, 28, 28).transpose(2, 1), nrow=num_samples).permute(1, 2, 0) + 1) / 2 # type: ignore
     y_fake = (make_grid(y_fake.transpose(2, 1), nrow=num_samples).permute(1, 2, 0) + 1) / 2
 
     if figsize is None:

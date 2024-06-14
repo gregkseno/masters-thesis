@@ -1,7 +1,8 @@
-from typing import Optional
+from typing import Callable
 
 import torch
 from torch import nn
+import torch.monitor
 from torch.optim import Adam, Optimizer
 from torch.utils.data import DataLoader, Dataset
 from torch.nn.utils import clip_grad_norm_
@@ -27,6 +28,7 @@ class AdversarialIPFPTrainer:
         cond_q: nn.Module,
         disc_b: nn.Module,
         disc_f: nn.Module,
+        gamma: float,
         lr_gen: dict[str, float],
         lr_disc: dict[str, float],
         clip: float = 0.1,
@@ -38,27 +40,27 @@ class AdversarialIPFPTrainer:
         self.disc_b = disc_b
         self.disc_f = disc_f
         self.clip = clip
+        self.gamma = gamma
 
-        self.optim_gen: dict[str, Optimizer] = {
-            'forward': Adam(cond_q.parameters(), lr=lr_gen['forward']),
-            'backward': Adam(cond_p.parameters(), lr=lr_gen['backward'])
-        }
-        self.optim_disc: dict[str, Optimizer] = {
-            'forward': Adam(disc_f.parameters(), lr=lr_disc['forward']), # , weight_decay=0.5),
-            'backward': Adam(disc_b.parameters(), lr=lr_disc['backward']) # , weight_decay=0.5),
-        }
+        self.optim_gen_f = Adam(cond_q.parameters(), lr=lr_gen['forward'])
+        self.optim_gen_b = Adam(cond_p.parameters(), lr=lr_gen['backward'])
+        self.optim_disc_f = Adam(disc_f.parameters(), lr=lr_disc['forward']) # , weight_decay=0.5)
+        self.optim_disc_b = Adam(disc_b.parameters(), lr=lr_disc['backward']) # , weight_decay=0.5)
         
         self.device = device
         self.log_path = log_path
 
-    def _backward_step(self, x: torch.Tensor, y:  torch.Tensor):
-        loss_disc_fixed, loss_disc_training = self._train_step_disc(y, x, self.cond_p, self.cond_q, self.disc_b, self.optim_disc, step='backward')
-        loss_cond = self._train_step_gen(y, self.cond_p, self.disc_b, self.optim_gen, step='backward')
+    def _backward_step(self, x: torch.Tensor, y:  torch.Tensor, init: bool):
+        cond_q = self.cond_q
+        if init:
+            cond_q = lambda mean: torch.normal(mean, self.gamma)
+        loss_disc_fixed, loss_disc_training = self._train_step_disc(y, x, self.cond_p, cond_q, self.disc_b, self.optim_disc_b)
+        loss_cond = self._train_step_gen(y, self.cond_p, self.disc_b, self.optim_gen_b)
         return loss_cond, loss_disc_fixed, loss_disc_training
 
     def _forward_step(self, x: torch.Tensor, y:  torch.Tensor):
-        loss_disc_fixed, loss_disc_training = self._train_step_disc(x, y, self.cond_q, self.cond_p, self.disc_f, self.optim_disc, step='forward')
-        loss_cond = self._train_step_gen(x, self.cond_q, self.disc_f, self.optim_gen, step='forward')
+        loss_disc_fixed, loss_disc_training = self._train_step_disc(x, y, self.cond_q, self.cond_p, self.disc_f, self.optim_disc_f)
+        loss_cond = self._train_step_gen(x, self.cond_q, self.disc_f, self.optim_gen_f)
         return loss_cond, loss_disc_fixed, loss_disc_training
 
     def _train_step_gen(
@@ -66,22 +68,17 @@ class AdversarialIPFPTrainer:
         latent: torch.Tensor,
         cond: nn.Module,
         disc: nn.Module,
-        optim: dict[str, Optimizer],
-        step: str
+        optim: Optimizer,
     ):
-        optim[step].zero_grad()
+        optim.zero_grad()
 
         # Generate fake samples
         generated = cond(latent)
 
-        # if step == 'backward':
-        #     loss = disc(generated, latent).mean()
-        # else:
         loss = disc(latent, generated).mean()
 
         loss.backward()
-        # clip_grad_norm_(cond.parameters(), self.clip)
-        optim[step].step()
+        optim.step()
         return loss.detach().cpu().item()
 
     def _train_step_disc(
@@ -89,35 +86,28 @@ class AdversarialIPFPTrainer:
         latent: torch.Tensor,
         latent_fixed: torch.Tensor,
         cond: nn.Module,
-        cond_fixed: nn.Module,
+        cond_fixed: nn.Module | Callable,
         disc: nn.Module,
-        optim: dict[str, Optimizer],
-        step: str
+        optim: Optimizer,
     ):
-        optim[step].zero_grad()
+        optim.zero_grad()
 
         # calc training cond loss
         with torch.no_grad():
             generated = cond(latent)
 
-        # if step == 'backward':
-        #     loss_training = disc(generated, latent).mean()
-        # else:
         loss_training = disc(latent, generated).mean()
 
         # calc fixed cond loss
         with torch.no_grad():
             generated = cond_fixed(latent_fixed)
 
-        # if step == 'backward':
-        #     loss_fixed = disc(latent_fixed, generated, conjugate=True).mean()
-        # else:
         loss_fixed = disc(generated, latent_fixed, conjugate=True).mean()
 
         loss = loss_fixed - loss_training
         loss.backward()
         clip_grad_norm_(disc.parameters(), self.clip)
-        optim[step].step()
+        optim.step()
 
         return loss_fixed.detach().cpu().item(), -loss_training.detach().cpu().item()
 
@@ -126,10 +116,9 @@ class AdversarialIPFPTrainer:
         x_loader: DataLoader,
         y_loader: DataLoader,
         losses: dict[str, list[float]],
-        inner_steps: int = 10
+        inner_steps: int = 10,
+        init: bool = False
     ):
-        # self.cond_p.reset_params()
-        # self.disc_b.reset_params()
         for step in range(inner_steps):
             total_loss_cond_p = 0
             total_loss_disc_b_fixed = 0
@@ -146,7 +135,7 @@ class AdversarialIPFPTrainer:
                 x = x.to(self.device)
                 y = y.to(self.device)
 
-                loss_cond_p, loss_disc_b_fixed, loss_disc_b_training = self._backward_step(x, y)
+                loss_cond_p, loss_disc_b_fixed, loss_disc_b_training = self._backward_step(x, y, init)
                 total_loss_cond_p += loss_cond_p
                 total_loss_disc_b_fixed += loss_disc_b_fixed
                 total_loss_disc_b_training += loss_disc_b_training
@@ -168,8 +157,6 @@ class AdversarialIPFPTrainer:
         losses: dict[str, list[float]],
         inner_steps: int = 10,
     ):
-        # self.cond_q.reset_params()
-        # self.disc_f.reset_params()
         for step in range(inner_steps):
             total_loss_cond_q = 0
             total_loss_disc_f_fixed = 0
@@ -243,15 +230,18 @@ class AdversarialIPFPTrainer:
             'disc_b_training': [],
             'disc_f_training': []
         }
+        init = True
 
         for epoch in tqdm(range(epochs), desc='Epochs'):
             print(f'======= Epoch {epoch} =======')
-            losses = self._train_backward(x_loader, y_loader, losses, inner_steps)
+            losses = self._train_backward(x_loader, y_loader, losses, inner_steps, init=init)
             if wandb.run is not None:
                 self._log(losses, x_loader.dataset, y_loader.dataset, epoch)
             
             losses = self._train_forward(x_loader, y_loader, losses, inner_steps)
             if wandb.run is not None:
                 self._log(losses, x_loader.dataset, y_loader.dataset, epoch)
+
+            init = False
         
         return losses
