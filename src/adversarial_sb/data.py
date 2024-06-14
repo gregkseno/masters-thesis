@@ -71,7 +71,7 @@ class LettersDataset(Dataset):
         # letters = self.letters.iloc[index][1:].values.reshape(*self.size).astype(np.float32)
         letters = (self.letters.iloc[index][1:].values.astype(np.float32) - 127.5) / 127.5
         # letters = self.transform(letters)
-        return letters # .transpose(2, 1)
+        return letters.reshape(1, 28, 28) # .transpose(2, 1)
     
     def __len__(self):
         return len(self.letters)
@@ -94,7 +94,7 @@ class DigitsDataset(Dataset):
         # digits = self.digits.iloc[index][1:].values.reshape(*self.size).astype(np.float32)
         digits = (self.digits.iloc[index][1:].values.astype(np.float32) - 127.5) / 127.5
         # digits = self.transform(digits)
-        return digits # .transpose(2, 1)
+        return digits.reshape(1, 28, 28) # .transpose(2, 1)
     
     def __len__(self):
         return len(self.digits)

@@ -188,8 +188,8 @@ class Critic(nn.Module):
     ):
         super().__init__()
 
-        # self.net = Discriminator(in_channels=2)
-        self.net = get_simple_model([2 * in_dim] + hidden_dims + [1], nn.ELU())
+        self.net = Discriminator(in_channels=2)
+        # self.net = get_simple_model([2 * in_dim] + hidden_dims + [1], nn.ELU())
         self.activation = Activation(divergence)
         self.conjugate = Conjugate(divergence)
 
@@ -208,19 +208,19 @@ class Conditional(nn.Module):
 
     def __init__(self, hidden_dims: list[int], in_dim: int = 784, latent_dim: int = 100):
         super().__init__()
-        # self.gen = Generator(in_channels=2, out_channels=1)
+        self.gen = Generator(in_channels=1, out_channels=1)
 
         self.in_dim = in_dim
         self.hidden_dims = hidden_dims
 
-        self.embed = nn.Linear(latent_dim, in_dim)
-        self.gen = nn.Sequential(get_simple_model([2 * in_dim] + hidden_dims + [in_dim]), nn.Tanh())
-        self.latent_dist = lambda num: 2 * torch.rand(size=(num, latent_dim)) - 1
+        # self.embed = nn.Linear(latent_dim, in_dim)
+        # self.gen = nn.Sequential(get_simple_model([in_dim] + hidden_dims + [in_dim]), nn.Tanh())
+        # self.latent_dist = lambda num: 2 * torch.rand(size=(num, latent_dim)) - 1
 
     def forward(self, x: torch.Tensor):
-        bs = x.shape[0]
-        z_x = torch.cat([self.embed(self.latent_dist(bs).to(x.device)), x], dim=1)
-        return self.gen(z_x)     
+        # bs = x.shape[0]
+        # z_x = torch.cat([self.embed(self.latent_dist(bs).to(x.device)), x], dim=1)
+        return self.gen(x)     
     
     @torch.no_grad
     def _log(
@@ -247,8 +247,8 @@ class Conditional(nn.Module):
         lr_gen: float
     ):
         self._device = next(self.gen.parameters()).device
-        disc = Critic(hidden_dims=self.hidden_dims[1:]).to(self._device)
-        self._real_dist = lambda mean: torch.normal(mean=mean, std=gamma)
+        disc = Discriminator(in_channels=1).to(self._device)
+        self._real_dist = lambda mean: torch.clamp(torch.normal(mean=mean, std=gamma), min=-1, max=1)
         self._criterion = nn.BCELoss()
         optim_disc = torch.optim.Adam(disc.parameters(), lr=lr_disc)
 
@@ -282,7 +282,7 @@ class Conditional(nn.Module):
         optim.zero_grad()
         
         loss = self._criterion(
-            F.sigmoid(disc(self(x), x)), 
+            F.sigmoid(disc(self(x))), 
             torch.ones((bs, 1), device=self._device)
         )
         loss.backward()
@@ -294,7 +294,7 @@ class Conditional(nn.Module):
         optim.zero_grad()
         
         loss_real = self._criterion(
-            F.sigmoid(disc(self._real_dist(x), x)), 
+            F.sigmoid(disc(self._real_dist(x))), 
             torch.ones((bs, 1), device=self._device)
         )
 
@@ -302,7 +302,7 @@ class Conditional(nn.Module):
             y = self(x)
         
         loss_fake = self._criterion(
-            F.sigmoid(disc(y, x)), 
+            F.sigmoid(disc(y)), 
             torch.zeros((bs, 1), device=self._device)
         )
 
