@@ -56,22 +56,15 @@ class OneVariateDataset(Dataset[torch.Tensor]):
 class LettersDataset(Dataset):
     def __init__(
             self, 
-            base_path,
-            size: tuple = (28, 28),
+            base_path: str
         ):
-        self.size = size
-        self.transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Resize(size),
-                transforms.Normalize((127.5), (127.5)),
-        ])
         self.letters = pd.read_csv(base_path, header=None)
+        self.letters.drop(columns=self.letters.columns[0], axis=1, inplace=True)
+        self.letters = ((self.letters - 127.5) / 127.5).astype(np.float32)
+        self.letters = torch.tensor(self.letters.values).reshape(-1, 1, 28, 28)
         
     def  __getitem__(self, index):
-        # letters = self.letters.iloc[index][1:].values.reshape(*self.size).astype(np.float32)
-        letters = (self.letters.iloc[index][1:].values.astype(np.float32) - 127.5) / 127.5
-        # letters = self.transform(letters)
-        return letters.reshape(1, 28, 28) # .transpose(2, 1)
+        return self.letters[index] # .transpose(2, 1)
     
     def __len__(self):
         return len(self.letters)
@@ -79,22 +72,15 @@ class LettersDataset(Dataset):
 class DigitsDataset(Dataset):
     def __init__(
             self, 
-            base_path,
-            size: tuple = (28, 28),
+            base_path: str
         ):
-        self.size = size
-        self.transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Resize(size),
-                transforms.Normalize((127.5), (127.5)),
-        ])
         self.digits = pd.read_csv(base_path, header=None)
+        self.digits.drop(columns=self.digits.columns[0], axis=1, inplace=True)
+        self.digits = ((self.digits - 127.5) / 127.5).astype(np.float32)
+        self.digits = torch.tensor(self.digits.values).reshape(-1, 1, 28, 28)
         
     def  __getitem__(self, index):
-        # digits = self.digits.iloc[index][1:].values.reshape(*self.size).astype(np.float32)
-        digits = (self.digits.iloc[index][1:].values.astype(np.float32) - 127.5) / 127.5
-        # digits = self.transform(digits)
-        return digits.reshape(1, 28, 28) # .transpose(2, 1)
+        return self.digits[index] # .transpose(2, 1)
     
     def __len__(self):
         return len(self.digits)
