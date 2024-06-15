@@ -3,9 +3,8 @@ from typing import Callable
 import torch
 from torch import nn
 import torch.monitor
-from torch.optim import Adam, Optimizer
+from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader, Dataset
-from torch.nn.utils import clip_grad_norm_
 
 import wandb
 from tqdm.auto import tqdm
@@ -31,7 +30,6 @@ class AdversarialIPFPTrainer:
         gamma: float,
         lr_gen: dict[str, float],
         lr_disc: dict[str, float],
-        clip: float = 0.1,
         device: str = 'cpu',
         log_path: str = './'
     ):
@@ -39,13 +37,12 @@ class AdversarialIPFPTrainer:
         self.cond_q = cond_q  # y|x
         self.disc_b = disc_b
         self.disc_f = disc_f
-        self.clip = clip
         self.gamma = gamma
 
-        self.optim_gen_f = Adam(cond_q.parameters(), lr=lr_gen['forward'])
-        self.optim_gen_b = Adam(cond_p.parameters(), lr=lr_gen['backward'])
-        self.optim_disc_f = Adam(disc_f.parameters(), lr=lr_disc['forward']) # , weight_decay=0.5)
-        self.optim_disc_b = Adam(disc_b.parameters(), lr=lr_disc['backward']) # , weight_decay=0.5)
+        self.optim_gen_f = AdamW(cond_q.parameters(), lr=lr_gen['forward'])
+        self.optim_gen_b = AdamW(cond_p.parameters(), lr=lr_gen['backward'])
+        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward']) # , weight_decay=0.5)
+        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward']) # , weight_decay=0.5)
         
         self.device = device
         self.log_path = log_path
@@ -106,7 +103,6 @@ class AdversarialIPFPTrainer:
 
         loss = loss_fixed - loss_training
         loss.backward()
-        clip_grad_norm_(disc.parameters(), self.clip)
         optim.step()
 
         return loss_fixed.detach().cpu().item(), -loss_training.detach().cpu().item()

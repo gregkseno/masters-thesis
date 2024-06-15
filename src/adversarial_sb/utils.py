@@ -183,15 +183,17 @@ def visualize_gamma(
         return alpha_color_rgb.tolist()
     
     if figsize is None:
-        figsize = (12, 6)
+        figsize = (10, 5)
     _, axs = plt.subplots(1, 2, figsize=figsize)
     
     idexes = [1, 42, 554]
     points_to_transfer = torch.stack([x[index] for index in idexes]).cpu().numpy()
 
     for i, cond in enumerate([conditional1, conditional2]):
+        with torch.no_grad():
+            y_fake = cond(x[:1000]).numpy()
         axs[i].scatter(
-            y[:, 0].numpy(), y[:, 1].numpy(),
+            y_fake[:, 0], y_fake[:, 1],
             color=alpha_color('red'), s=48, edgecolors=alpha_color('black'), zorder=0
         )
         axs[i].scatter(

@@ -61,8 +61,8 @@ class Generator(nn.Module):
         super().__init__()       
         self.conv1 = ConvLayer(in_channels, hidden_dim, kernel=3, stride=2)
         self.conv2 = ConvLayer(hidden_dim, hidden_dim//2, kernel=3, stride=1)
-        self.conv_transpose2 = ConvTransposeLayer(hidden_dim//2, hidden_dim, kernel=3, stride=1)
-        self.conv_transpose3 = nn.ConvTranspose2d(hidden_dim, out_channels, kernel_size=4, stride=2)
+        self.conv_transpose1 = ConvTransposeLayer(hidden_dim//2, hidden_dim, kernel=3, stride=1)
+        self.conv_transpose2 = nn.ConvTranspose2d(hidden_dim, out_channels, kernel_size=4, stride=2)
         self.tanh = nn.Tanh()
         
     
