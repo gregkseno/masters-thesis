@@ -6,6 +6,8 @@ import random
 
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib import colors as mpl_colors
+from matplotlib.collections import LineCollection
 
 import torch
 from torch import nn
@@ -164,3 +166,51 @@ def visualize_gan_images(
     axs[1].axis('off')
     
     plt.show()
+
+
+def visualize_gamma(
+    conditional1: nn.Module, 
+    conditional2: nn.Module,
+    x: Dataset, 
+    y: Dataset,
+    num_traslations: int = 10,
+    figsize: tuple[int, int] | None = None
+):
+    
+    def alpha_color(color_name: str, alpha=0.2):
+        color_rgb = np.asarray(mpl_colors.hex2color(mpl_colors.cnames[color_name]))
+        alpha_color_rgb = 1. - (1. - color_rgb) * alpha
+        return alpha_color_rgb.tolist()
+    
+    if figsize is None:
+        figsize = (12, 6)
+    _, axs = plt.subplots(1, 2, figsize=figsize)
+    
+    idexes = [1, 42, 554]
+    points_to_transfer = torch.stack([x[index] for index in idexes]).cpu().numpy()
+
+    for i, cond in enumerate([conditional1, conditional2]):
+        axs[i].scatter(
+            y[:, 0].numpy(), y[:, 1].numpy(),
+            color=alpha_color('red'), s=48, edgecolors=alpha_color('black'), zorder=0
+        )
+        axs[i].scatter(
+            points_to_transfer[:, 0], points_to_transfer[:, 1],
+            c="blue", s=48, edgecolors="black", zorder=2, label=r'Source samples $x \sim \mathbb{P}$'
+        )
+        # axs[i].axis('off')
+
+        for _i, index in enumerate(idexes):
+            with torch.no_grad():
+                y_fake = cond(x[index].repeat(num_traslations, 1)).numpy()
+
+            lines_energy = np.concatenate([x[index].repeat(num_traslations, 1).numpy(), y_fake], axis=-1).reshape(-1, 2, 2)
+            lc_energy = LineCollection(
+                lines_energy, color='black', linewidths=1., alpha=0.4, zorder=1) # type: ignore
+            axs[i].add_collection(lc_energy)
+
+            axs[i].scatter(
+                y_fake[:, 0], y_fake[:, 1],
+                c="green", s=48, edgecolors="black", zorder=2, label=r'Condit. samples $y \sim \pi(\cdot \vert x)$' if _i == 0 else None
+            )
+    
