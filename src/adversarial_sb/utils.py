@@ -190,17 +190,14 @@ def visualize_gamma(
     points_to_transfer = torch.stack([x[index] for index in idexes]).cpu().numpy()
 
     for i, cond in enumerate([conditional1, conditional2]):
-        with torch.no_grad():
-            y_fake = cond(x[:1000]).numpy()
         axs[i].scatter(
-            y_fake[:, 0], y_fake[:, 1],
+            y[:, 0], y[:, 1],
             color=alpha_color('red'), s=48, edgecolors=alpha_color('black'), zorder=0
         )
         axs[i].scatter(
             points_to_transfer[:, 0], points_to_transfer[:, 1],
             c="blue", s=48, edgecolors="black", zorder=2, label=r'Source samples $x \sim \mathbb{P}$'
         )
-        # axs[i].axis('off')
 
         for _i, index in enumerate(idexes):
             with torch.no_grad():

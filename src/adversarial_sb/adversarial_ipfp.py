@@ -41,8 +41,8 @@ class AdversarialIPFPTrainer:
 
         self.optim_gen_f = AdamW(cond_q.parameters(), lr=lr_gen['forward'])
         self.optim_gen_b = AdamW(cond_p.parameters(), lr=lr_gen['backward'])
-        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward'], weight_decay=0.5)
-        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward'], weight_decay=0.5)
+        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward'])
+        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward'])
         
         self.device = device
         self.log_path = log_path
@@ -204,8 +204,8 @@ class AdversarialIPFPTrainer:
 
         torch.save(self.cond_p.state_dict(), self.log_path + 'conditional_p.pt')
         torch.save(self.cond_q.state_dict(), self.log_path + 'conditional_q.pt')
-        # wandb.save('../models/conditional_p.pt')
-        # wandb.save('../models/conditional_q.pt')
+        wandb.save(self.log_path + 'conditional_p.pt')
+        wandb.save(self.log_path + 'conditional_q.pt')
 
         self.cond_p.train()
         self.cond_q.train()

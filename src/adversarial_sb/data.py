@@ -19,7 +19,7 @@ def to_rgb(image):
 class MoonsDataset(Dataset[torch.Tensor]):
     def __init__(self, size: int):
         self.size = size
-        self.moons = torch.tensor(make_moons(size, noise=0.05)[0], dtype=torch.float)
+        self.moons = torch.tensor(make_moons(size, noise=0.01)[0], dtype=torch.float)
 
     def __len__(self):
         return self.size
@@ -30,7 +30,7 @@ class MoonsDataset(Dataset[torch.Tensor]):
 class CirclesDataset(Dataset[torch.Tensor]):
     def __init__(self, size: int):
         self.size = size
-        self.circles = torch.tensor(make_circles(size, noise=0.03, factor=0.3)[0], dtype=torch.float)
+        self.circles = torch.tensor(make_circles(size, noise=0.01, factor=0.3)[0], dtype=torch.float)
 
     def __len__(self):
         return self.size

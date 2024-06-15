@@ -11,7 +11,7 @@ def get_simple_model(
     assert len(model_dims) > 1
     modules = []
     for in_, out_ in zip(model_dims[:-2], model_dims[1:-1]):
-        modules.extend([nn.Linear(in_, out_), nn.BatchNorm1d(out_), activation])
+        modules.extend([nn.Linear(in_, out_), activation])
     modules.append(nn.Linear(model_dims[-2], model_dims[-1]))
     return nn.Sequential(*modules)
 
@@ -86,7 +86,7 @@ class SimpleCritic(nn.Module):
         super().__init__()
         self.in_dim = in_dim
 
-        self.net = get_simple_model([2 * in_dim] + hidden_dims + [1], nn.ELU())
+        self.net = get_simple_model([2 * in_dim] + hidden_dims + [1], nn.LeakyReLU(0.2))
         self.activation = Activation(divergence)
         self.conjugate = Conjugate(divergence)
 
