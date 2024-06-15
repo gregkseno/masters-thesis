@@ -41,8 +41,8 @@ class AdversarialIPFPTrainer:
 
         self.optim_gen_f = AdamW(cond_q.parameters(), lr=lr_gen['forward'])
         self.optim_gen_b = AdamW(cond_p.parameters(), lr=lr_gen['backward'])
-        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward']) # , weight_decay=0.5)
-        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward']) # , weight_decay=0.5)
+        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward'], weight_decay=0.5)
+        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward'], weight_decay=0.5)
         
         self.device = device
         self.log_path = log_path
@@ -194,10 +194,10 @@ class AdversarialIPFPTrainer:
         x, y = x[42], y[42]
         x, y = x.to(self.device).unsqueeze(0), y.to(self.device).unsqueeze(0) # type: ignore
 
-        y_fake = wandb.Image(self.cond_q(x).squeeze(0).cpu().permute(1, 2, 0).detach().numpy(), caption="Fake Digit")
-        x = wandb.Image(x.cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Letter") # type: ignore
-        x_fake = wandb.Image(self.cond_p(y).cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Fake Letter")
-        y = wandb.Image(y.cpu().squeeze(0).permute(1, 2, 0).detach().numpy(), caption="Digit") # type: ignore
+        y_fake = wandb.Image(self.cond_q(x).squeeze(0).cpu().permute(2, 1, 0).detach().numpy(), caption="Fake Digit")
+        x = wandb.Image(x.cpu().squeeze(0).permute(2, 1, 0).detach().numpy(), caption="Letter") # type: ignore
+        x_fake = wandb.Image(self.cond_p(y).cpu().squeeze(0).permute(2, 1, 0).detach().numpy(), caption="Fake Letter")
+        y = wandb.Image(y.cpu().squeeze(0).permute(2, 1, 0).detach().numpy(), caption="Digit") # type: ignore
         
         wandb.log({'Letter': x, 'Fake Digit': y_fake, 'Digit': y, 'Fake Letter': x_fake}, step=step)
         wandb.log({key: loss[-1] for key, loss in losses.items() if len(loss) != 0}, step=step)
