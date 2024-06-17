@@ -19,7 +19,7 @@ def to_rgb(image):
 class MoonsDataset(Dataset[torch.Tensor]):
     def __init__(self, size: int):
         self.size = size
-        self.moons = torch.tensor(make_moons(size, noise=0.01)[0], dtype=torch.float)
+        self.moons = torch.tensor(make_moons(size, noise=0.1)[0], dtype=torch.float)
 
     def __len__(self):
         return self.size
@@ -30,7 +30,7 @@ class MoonsDataset(Dataset[torch.Tensor]):
 class CirclesDataset(Dataset[torch.Tensor]):
     def __init__(self, size: int):
         self.size = size
-        self.circles = torch.tensor(make_circles(size, noise=0.01, factor=0.3)[0], dtype=torch.float)
+        self.circles = torch.tensor(make_circles(size, noise=0.1, factor=0.4)[0], dtype=torch.float)
 
     def __len__(self):
         return self.size
@@ -61,7 +61,7 @@ class LettersDataset(Dataset):
         self.letters = pd.read_csv(base_path, header=None)
         self.letters.drop(columns=self.letters.columns[0], axis=1, inplace=True)
         self.letters = ((self.letters - 127.5) / 127.5).astype(np.float32)
-        self.letters = torch.tensor(self.letters.values).reshape(-1, 1, 28, 28)
+        self.letters = torch.tensor(self.letters.values)# .reshape(-1, 1, 28, 28)
         
     def  __getitem__(self, index):
         return self.letters[index] # .transpose(2, 1)
@@ -77,7 +77,7 @@ class DigitsDataset(Dataset):
         self.digits = pd.read_csv(base_path, header=None)
         self.digits.drop(columns=self.digits.columns[0], axis=1, inplace=True)
         self.digits = ((self.digits - 127.5) / 127.5).astype(np.float32)
-        self.digits = torch.tensor(self.digits.values).reshape(-1, 1, 28, 28)
+        self.digits = torch.tensor(self.digits.values)# .reshape(-1, 1, 28, 28)
         
     def  __getitem__(self, index):
         return self.digits[index] # .transpose(2, 1)

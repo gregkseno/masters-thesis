@@ -48,28 +48,6 @@ def visualize_sb(
     axs[1][1].set_title(f'Fake {x_title}')
 
 
-def visualize_gan(
-    gan: nn.Module, 
-    x: Dataset,
-    y: Dataset,
-    num_samples: int = 1_000,
-):
-    num_samples -= 1
-    assert num_samples < len(x), 'Number of samples is larger than dataset length' # type: ignore
-    assert num_samples < len(y), 'Number of samples is larger than dataset length' # type: ignore
-    
-    x = x[:num_samples]
-    y = y[:num_samples]
-    columns: dict[str, Any] = {'x': 'x', 'y': 'y'} if x.shape[1] == 2 else {'x': 'x'} # type: ignore
-
-    generated = pd.DataFrame(gan(x).detach().numpy(), columns=list(columns.values())).assign(Type='Generated')
-    x = pd.DataFrame(x.numpy(), columns=list(columns.values())).assign(Type='Real') # type: ignore
-
-    both = pd.concat([generated, x], axis=0) # type: ignore
-    
-    sns.kdeplot(both, hue='Type', fill=True, **columns)
-
-
 def visualize_losses(
     losses: dict[str, list[float]],
     loss_titles: dict[str, str],
@@ -136,44 +114,12 @@ def visualize_sb_images(
     plt.show()
 
 
-def visualize_gan_images(
-    gan: nn.Module, 
-    x: Dataset,
-    num_samples: int = 1,
-    title: str = 'Y',
-    figsize: tuple[int, int] | None = None,
-):
-    idx = random.choice(range(len(x))) # type: ignore
-    x = x[idx]
-    x = torch.tensor(x).unsqueeze(0) # type: ignore
-    with torch.no_grad():
-        y_fake = gan(x).detach().reshape(num_samples, 28, 28)
-
-    x = (make_grid(x.reshape(num_samples, 28, 28).transpose(2, 1), nrow=num_samples).permute(1, 2, 0) + 1) / 2 # type: ignore
-    y_fake = (make_grid(y_fake.transpose(2, 1), nrow=num_samples).permute(1, 2, 0) + 1) / 2
-
-    if figsize is None:
-        figsize = (6, 6)
-
-    _, axs = plt.subplots(1, 2, figsize=figsize)
-
-    axs[0].set_title(f'{title}')
-    axs[0].imshow(x)
-    axs[0].axis('off')
-
-    axs[1].set_title(f'Generated {title}')
-    axs[1].imshow(y_fake)
-    axs[1].axis('off')
-    
-    plt.show()
-
-
 def visualize_gamma(
     conditional1: nn.Module, 
     conditional2: nn.Module,
     x: Dataset, 
     y: Dataset,
-    num_traslations: int = 10,
+    num_traslations: int = 3,
     figsize: tuple[int, int] | None = None
 ):
     
@@ -186,7 +132,7 @@ def visualize_gamma(
         figsize = (10, 5)
     _, axs = plt.subplots(1, 2, figsize=figsize)
     
-    idexes = [1, 42, 554]
+    idexes = [1, 42, 228]
     points_to_transfer = torch.stack([x[index] for index in idexes]).cpu().numpy()
 
     for i, cond in enumerate([conditional1, conditional2]):
@@ -203,6 +149,13 @@ def visualize_gamma(
             with torch.no_grad():
                 y_fake = cond(x[index].repeat(num_traslations, 1)).numpy()
 
+            # if i == 1:
+            #     y_fake[:, 0] = y_fake[:, 0] * 2
+            #     y_fake[:, 1] = (y_fake[:, 1] - 0.2) * 10/6
+            # if i == 0:
+            #     y_fake[:, 0] = (y_fake[:, 0] + 0.5) / 1.5
+            #     y_fake[:, 1] = y_fake[:, 1] * 2/3
+            
             lines_energy = np.concatenate([x[index].repeat(num_traslations, 1).numpy(), y_fake], axis=-1).reshape(-1, 2, 2)
             lc_energy = LineCollection(
                 lines_energy, color='black', linewidths=1., alpha=0.4, zorder=1) # type: ignore

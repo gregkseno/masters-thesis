@@ -11,7 +11,7 @@ def get_simple_model(
     assert len(model_dims) > 1
     modules = []
     for in_, out_ in zip(model_dims[:-2], model_dims[1:-1]):
-        modules.extend([nn.Linear(in_, out_), activation])
+        modules.extend([nn.Linear(in_, out_), nn.BatchNorm1d(out_), activation])
     modules.append(nn.Linear(model_dims[-2], model_dims[-1]))
     return nn.Sequential(*modules)
 
@@ -66,13 +66,14 @@ class SimpleConditional(nn.Module):
         self.in_dim = in_dim
         self.hidden_dims = hidden_dims
 
-        self.embed = nn.Linear(latent_dim, in_dim)
+        # self.embed = nn.Linear(latent_dim, in_dim)
         self.gen = get_simple_model([2 * in_dim] + hidden_dims + [in_dim])
-        self.latent_dist = lambda num: 2 * torch.randn(size=(num, latent_dim))
+        self.latent_dist = lambda num: 2 * torch.randn(size=(num, in_dim))
 
     def forward(self, x: torch.Tensor):
         bs = x.shape[0]
-        z_x = torch.cat([self.embed(self.latent_dist(bs).to(x.device)), x], dim=1)
+        # z_x = torch.cat([self.embed(self.latent_dist(bs).to(x.device)), x], dim=1)
+        z_x = torch.cat([self.latent_dist(bs).to(x.device), x], dim=1)
         return self.gen(z_x)       
     
 
@@ -110,8 +111,8 @@ class Critic(nn.Module):
     ):
         super().__init__()
 
-        self.net = Discriminator(in_channels=2)
-        # self.net = get_simple_model([2 * in_dim] + hidden_dims + [1], nn.ELU())
+        # self.net = Discriminator(in_channels=2)
+        self.net = get_simple_model([2 * in_dim] + hidden_dims + [1], nn.LeakyReLU(0.2))
         self.activation = Activation(divergence)
         self.conjugate = Conjugate(divergence)
 
@@ -136,16 +137,14 @@ class Conditional(nn.Module):
         ):
         super().__init__()
 
-        self.embed = nn.Linear(latent_dim, in_dim)
-        # self.gen = nn.Sequential(get_simple_model([in_dim] + hidden_dims + [in_dim]), nn.Tanh())
-        self.gen = Generator(in_channels=2, out_channels=1)
-        self.latent_dist = lambda num: 2 * torch.rand(size=(num, latent_dim)) - 1
+        # self.embed = nn.Linear(latent_dim, in_dim)
+        self.gen = nn.Sequential(get_simple_model([2 * in_dim] + hidden_dims + [in_dim]), nn.Tanh())
+        # self.gen = Generator(in_channels=2, out_channels=1)
+        self.latent_dist = lambda shape: 2 * torch.rand(size=shape) - 1
 
 
     def forward(self, x: torch.Tensor):
-        bs = x.shape[0]
-        z = self.embed(self.latent_dist(bs).to(x.device)).reshape(x.shape)
-        z_x = torch.cat([z, x], dim=1)
+        z_x = torch.cat([self.latent_dist(x.shape).to(x.device), x], dim=1)
         return self.gen(z_x)     
     
         

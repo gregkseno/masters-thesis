@@ -41,8 +41,8 @@ class AdversarialIPFPTrainer:
 
         self.optim_gen_f = AdamW(cond_q.parameters(), lr=lr_gen['forward'])
         self.optim_gen_b = AdamW(cond_p.parameters(), lr=lr_gen['backward'])
-        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward'])
-        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward'])
+        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward'], weight_decay=0.5)
+        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward'], weight_decay=0.5)
         
         self.device = device
         self.log_path = log_path
