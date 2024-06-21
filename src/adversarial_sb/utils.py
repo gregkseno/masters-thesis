@@ -115,11 +115,11 @@ def visualize_sb_images(
 
 
 def visualize_gamma(
-    conditional1: nn.Module, 
-    conditional2: nn.Module,
+    conditionals: list[nn.Module], 
     x: Dataset, 
     y: Dataset,
-    num_traslations: int = 3,
+    titles: list[str],
+    num_traslations: int = 10,
     figsize: tuple[int, int] | None = None
 ):
     
@@ -129,32 +129,26 @@ def visualize_gamma(
         return alpha_color_rgb.tolist()
     
     if figsize is None:
-        figsize = (10, 5)
-    _, axs = plt.subplots(1, 2, figsize=figsize)
+        figsize = (5 * len(conditionals), 5)
+    _, axs = plt.subplots(1, len(conditionals), figsize=figsize)
     
-    idexes = [1, 42, 228]
-    points_to_transfer = torch.stack([x[index] for index in idexes]).cpu().numpy()
+    idexes = [28, 30, 1337]
+    points_to_transfer = torch.stack([x[index] for index in idexes], dim=0).numpy()
 
-    for i, cond in enumerate([conditional1, conditional2]):
+    for i, (cond, title) in enumerate(zip(conditionals, titles)):
+        axs[i].set_title(title)
         axs[i].scatter(
             y[:, 0], y[:, 1],
-            color=alpha_color('red'), s=48, edgecolors=alpha_color('black'), zorder=0
+            color=alpha_color('red'), s=48, edgecolors=alpha_color('black'), zorder=0, label=r'Реальные сэмплы $y \sim \pi_T(y)$'
         )
         axs[i].scatter(
             points_to_transfer[:, 0], points_to_transfer[:, 1],
-            c="blue", s=48, edgecolors="black", zorder=2, label=r'Source samples $x \sim \mathbb{P}$'
+            c="blue", s=48, edgecolors="black", zorder=2, label=r'Исходыне элементы $x \sim \mathcal{N}(0, \mathbb{I}_2)$'
         )
 
         for _i, index in enumerate(idexes):
             with torch.no_grad():
                 y_fake = cond(x[index].repeat(num_traslations, 1)).numpy()
-
-            # if i == 1:
-            #     y_fake[:, 0] = y_fake[:, 0] * 2
-            #     y_fake[:, 1] = (y_fake[:, 1] - 0.2) * 10/6
-            # if i == 0:
-            #     y_fake[:, 0] = (y_fake[:, 0] + 0.5) / 1.5
-            #     y_fake[:, 1] = y_fake[:, 1] * 2/3
             
             lines_energy = np.concatenate([x[index].repeat(num_traslations, 1).numpy(), y_fake], axis=-1).reshape(-1, 2, 2)
             lc_energy = LineCollection(
@@ -163,6 +157,7 @@ def visualize_gamma(
 
             axs[i].scatter(
                 y_fake[:, 0], y_fake[:, 1],
-                c="green", s=48, edgecolors="black", zorder=2, label=r'Condit. samples $y \sim \pi(\cdot \vert x)$' if _i == 0 else None
+                c="green", s=48, edgecolors="black", zorder=2, label=r'Сгенерированные элементы $y \sim q(y | x)$' if _i == 0 else None
             )
+            axs[i].legend(fontsize=8)
     

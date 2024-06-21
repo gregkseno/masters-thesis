@@ -39,10 +39,10 @@ class AdversarialIPFPTrainer:
         self.disc_f = disc_f
         self.gamma = gamma
 
-        self.optim_gen_f = AdamW(cond_q.parameters(), lr=lr_gen['forward'])
-        self.optim_gen_b = AdamW(cond_p.parameters(), lr=lr_gen['backward'])
-        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward'], weight_decay=0.5)
-        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward'], weight_decay=0.5)
+        self.optim_gen_f = AdamW(cond_q.parameters(), lr=lr_gen['forward'], weight_decay=0.1)
+        self.optim_gen_b = AdamW(cond_p.parameters(), lr=lr_gen['backward'], weight_decay=0.1)
+        self.optim_disc_f = AdamW(disc_f.parameters(), lr=lr_disc['forward'], weight_decay=0.1)
+        self.optim_disc_b = AdamW(disc_b.parameters(), lr=lr_disc['backward'], weight_decay=0.1)
         
         self.device = device
         self.log_path = log_path
@@ -66,7 +66,7 @@ class AdversarialIPFPTrainer:
         cond: nn.Module,
         disc: nn.Module,
         optim: Optimizer,
-    ):
+    ) -> float:
         optim.zero_grad()
 
         # Generate fake samples
@@ -86,7 +86,7 @@ class AdversarialIPFPTrainer:
         cond_fixed: nn.Module | Callable,
         disc: nn.Module,
         optim: Optimizer,
-    ):
+    ) -> tuple[float, float]:
         optim.zero_grad()
 
         # calc training cond loss
@@ -114,7 +114,7 @@ class AdversarialIPFPTrainer:
         losses: dict[str, list[float]],
         inner_steps: int = 10,
         init: bool = False
-    ):
+    ) -> dict[str, list[float]]:
         for step in range(inner_steps):
             total_loss_cond_p = 0
             total_loss_disc_b_fixed = 0
@@ -152,7 +152,7 @@ class AdversarialIPFPTrainer:
         y_loader: DataLoader,
         losses: dict[str, list[float]],
         inner_steps: int = 10,
-    ):
+    ) -> dict[str, list[float]]:
         for step in range(inner_steps):
             total_loss_cond_q = 0
             total_loss_disc_f_fixed = 0
