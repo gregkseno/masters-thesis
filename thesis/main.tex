@@ -1,0 +1,40 @@
+\documentclass[a4paper, openany, 12pt]{article}
+
+%% подключаем стандарт библиографии
+\bibliographystyle{gost71u}
+
+%% для "Abstract" в классе book
+% \newenvironment{abstract}{}{}
+% \usepackage{abstract}
+
+%% подключаем преамбулу: в ней содержится подключение всех необходимых пакетов
+\input{include/preambule.tex}
+
+
+\begin{document}
+    %% титульник
+    % \input{include/title.tex}
+    \fancyhead[L]{Состязательные мосты Шрёдингера на задаче трансляции домена}
+    \fancyhead[R]{}
+    %% аннотоция
+    \input{parts/Annotation.tex}
+    %% содержание
+    \tableofcontents{}
+    \newpage
+
+    \input{parts/Chapter0.tex} %% Введение
+    \input{parts/Chapter1.tex} %% Постановка задачи
+    \input{parts/Chapter2.tex} %% Обзор существующих решений
+    \input{parts/Chapter3.tex} %% Исследование и построение решения задачи
+    \input{parts/Chapter4.tex} %% Описание практической части
+    \input{parts/Chapter5.tex} %% Заключение
+    \input{parts/Chapter6.tex} %% Заключение
+
+    %% НЕ ТРОГАЙТЕ!!!
+    \nocite{*}
+    \bibliography{references}
+
+    %% в зависимости от надобности подключаем раздел "Приложение"
+    % \newpage
+    % \input{Appendix.tex}
+\end{document}
