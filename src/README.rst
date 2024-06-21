@@ -1,25 +1,18 @@
 ************
-Installation
+Source code description
 ************
 
 Requirements
 ============
 
-- Python 3.*
-- pip 20.0.2
+- Python 3.11
 
-Installing by using PyPi
-========================
+adversarial_sb
+===========
+Source code of proposed method. Contains models, trainer, datasets and visualisation tools.
 
-Install
--------
-.. code-block:: bash
+cycle_gan
+===========
+Source code of simple implementation of CycleGAN. Contains models, trainer and visualisation tools.
 
-	git clone https://github.com/Intelligent-Systems-Phystech/ProjectTemplate.git /tmp/ProjectTemplate
-	python3 -m pip install /tmp/ProjectTemplate/src/
 
-Uninstall
----------
-.. code-block:: bash
-
-  python3 -m pip uninstall mylib
