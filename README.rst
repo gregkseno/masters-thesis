@@ -9,6 +9,7 @@ Abstract
 ========
 
 The master's thesis examines the domain translation problem. This problem is to find a mapping $G$ and $K$ that translate elements from the set $X$ to $Y$ and vice versa. The advanced method for solving this problem is Schrödinger bridges - direct and inverse stochastic processes that are limited by given distributions. Their main feature among other domain translation methods, such as CycleGAN, is the additional property of the optimality of the resulting translation.
+
 The goal of the study is to develop a new method for finding Schrödinger bridges that adresses two problems: the need to model a stochastic process, as well as the curse of dimensionality. To solve these problems, it is proposed a new approach based on adversarial learning. This method combines the advantages of adversarial generative networks (GANs) and Schrödinger bridges. In this work, experiments of the proposed approach are carried out on various datasets, including 2D data and EMNIST. The results obtained show that the proposed method satisfies all the stated requirements.
 
 
