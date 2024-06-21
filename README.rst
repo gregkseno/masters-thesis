@@ -1,7 +1,7 @@
 .. class:: center
 
     :Title: Adversarial Schrödinger bridges on domain translation problem
-    :Type: Magister's Thesis
+    :Type: Master's Thesis
     :Author: Ksenofontov Gregory
     :Supervisor: Candidate of Physico-Mathematical Sciences, Isachenko Roman
 
