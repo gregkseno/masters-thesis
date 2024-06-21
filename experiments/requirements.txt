@@ -1,0 +1,3 @@
+-r ../src/requirements.txt
+
+ipykernel==6.29.4

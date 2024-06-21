@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from adversarial_sb.style_gan.models import Generator, Discriminator
+from adversarial_sb.dcgan.models import Generator, Discriminator
 
 
 def get_simple_model(
