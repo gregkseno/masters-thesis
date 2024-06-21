@@ -10,7 +10,7 @@
 }
 
 \usepackage[utf8]{inputenc}
-\usepackage[english, russian]{babel}
+\usepackage[main=russian, english]{babel}
 \usepackage{bm}
 \usepackage{multirow}
 \usepackage{ragged2e}
@@ -22,6 +22,7 @@
 \usepackage{mathtools}
 \usepackage{comment}
 \usepackage{multicol}
+\usepackage{hyperref}
 
 \usepackage[all]{xy}
 
@@ -48,11 +49,11 @@
 
 %----------------------------------------------------------------------------------------------------------
 
-\title[]{Adversarial Schrödinger bridges}
-\author{Ksenofontov\,G.\,S.\\[1ex] 
-\small Isachenko\,R.\,V.}
-\institute[]{Moscow Institute of Physics and Technology}
-\date[2023]{\small 18\;may\;2024}
+\title[]{Состязательные Мосты Шрёдингера}
+\author{Ксенофонтов\,Г.\,С.\\[1ex] 
+\small Научный руководитель: Исаченко\,Р.\,В.,\ к.ф.-м.н.}
+\institute[]{Московский физико-технический институт (национальный исследовательский университет)}
+\date[2023]{\small 18\;мая\;2024}
 
 %---------------------------------------------------------------------------------------------------------
 \begin{document}
@@ -62,125 +63,76 @@
 \end{frame}
 
 %---------------------------------------------------------------------------------------------------------- This implies that a learner has only a sample access to the (continuous) distributions and based on it has to recover the entire SB process (e.g., its drift) between the entire distributions.
-\section{Research}
-\begin{frame}{Research}
-\bigskip
-The high computational inference cost of diffusion-based Schrödinger Bridge approaches is investigated.
-\begin{block}{Research objective~---}
-suggest a method of solving Schrödinger Bridges without recovering entire Schrödinger Bridge process.
-\end{block}
-\begin{block}{Required to suggest}
-\justifying
-\begin{enumerate}[1.]
-    \item algorithm of solving Schrödinger bridges problem that doesn't require recovering entire Schrödinger Bridge process,
-    \item analysis of this algorithm.
-\end{enumerate}
-\end{block}
-    \begin{block}{Solution}
-        Use adversarial training instead of diffusion approaches.
+\section{Исследование}
+\begin{frame}{Задача мостов Шрёдингера}
+    \bigskip
+    \begin{block}{Цель}
+        Найти прямое и обратное отображения между двумя распределениями данных с использованием мостов Шрёдингера.
+    \end{block}
+    \begin{block}{Задача}
+        \justifying
+        Разработать метод нахождения отображений, который не строит стохастического процесса между распределениями, и который не страдает от проклятия размерности.
+    \end{block}
+    \begin{block}{Решение}
+        Использовать эквивалентную задачу мостов Шрёдингера совместно с состязательное обучением.
     \end{block}
 \end{frame}
 % %---------------------------------------------------------------------------------------------------------
-\section{Problem statement}
-\begin{frame}{Problem statement}
-It is given
+
+\section{Постановка проблемы}
+\begin{frame}{Постановка проблемы}
+Пусть дано:
 \begin{enumerate}[1.]
-    \item $\{x_i\}_{i=0}^N = X, \{y_j\}_{j=0}^N = Y$ -- two unpaired datasets,  where $x_i \sim \pi_0(x)$ and $y_j \sim \pi_1(y)$,
-    \item $\mathbb{W}^{\gamma}$ -- path measure of reference Wiener process with drift $\sqrt{\gamma}$.
+    \item $\{x_i\}_{i=0}^N = X, \{y_j\}_{j=0}^M = Y$ -- два непарных набора данных,  где $x \sim \pi_0(x)$ и $y \sim \pi_T(y)$,
+    \item $p^{\mathbb{W}^{\gamma}}(x_0, \dots, x_T)$ -- совместное распределение эталонного Винеровского процесса с коэффициентом смещения $\sqrt{\gamma}$, а $x_0$ и $x_T$ -- элементы из $X$ и $Y$, соответственно.
 \end{enumerate}
 
-Dynamic Schrödinger Bridge Problem finds the closest path measure $\mathbb{Q}$ with prescribed marginals of $\pi_0(x)$, $\pi_1(y)$ at times 0 and 1, to reference path measure $\mathbb{W}^{\gamma}$ in sense of KL-divergence, i.e.:
+Динамическая постановка мостов Шредингера:
 
 \begin{equation}
-    \hat{\mathbb{Q}} = \arg\min_{\mathbb{Q}\in \mathcal{D}(\pi_0, \pi_1)} D_{KL}\mathbb{(Q||W}^\gamma),
+    q^*(x_0, \dots, x_T) = \arg\min_{q\in \mathcal{D}(\pi_0, \pi_T)} D_{KL}(q(x_0, \dots, x_T)||p^{\mathbb{W}^{\gamma}}(x_0, \dots, x_T)),
     \label{eq:dyn}
 \end{equation}
-where $\mathcal{D}(\pi_0, \pi_1)$ is space of all path measures with prescribed marginals $\pi_0(x)$ and $\pi_1(y)$.
-%  =  \mathcal{N}(x, \gamma\mathbb{I}) 
 
-However, the solving of the problem requires to learn process that connects both marginals. It is computationally expensive, so, we propose a new approach that addresses this problem.
+где $\mathcal{D}(\pi_0, \pi_T)$ множество всех совместных маргинальными распределениями $\pi_0(x_0)$ и $\pi_T(x_T)$.
 
+\begin{alertblock}{Проблема}
+    Для моделирования процесса используется сложная марковская цепь, которая значительно усложняет процесс генерации/инференса.
+    \begin{equation*}
+        q(\textcolor{red}{x_0, \dots, x_T}) = \pi_1(x_T) \prod_{t=0}^{T-1} q_{t|t+1} (x_t | x_{t+1}),
+    \end{equation*}
+\end{alertblock}
 \end{frame}
 
 % %----------------------------------------------------------------------------------------------------------
-\section{Suggested Method}
-\begin{frame}{Suggested Method}
+\section{Предложенный метод}
+\begin{frame}{Предложенное решение}
 ~\\[-1mm]
-Firstly, instead of solving dynamic version [\ref{eq:dyn}] of Schrödinger Bridge Problem we consider a Static formulation. With the same sets $X$ and $Y$ it is given joint distribution $p^{\mathbb{W}^\gamma}(x, y)$ of the reference Wiener process. Static Schrödinger Bridge Problem:
+\begin{block}{Статическая постановка задачи мостов Шрёдингера}
+    \begin{equation}
+        q^*(x,y) = \arg\min_{q\in \mathcal{D}(\pi_0, \pi_T)} D_{KL}(q(x,y)||p^{\mathbb{W}^\gamma}(x,y)),
+        \label{eq:static}
+    \end{equation}
+\end{block}
 
-\begin{equation}
-    \left\{ \begin{array}{c}
-    q^*(x,y) = \arg\min_{q(x,y)} D_{KL}(q(x,y)||p^{\mathbb{W}^\gamma}(x,y)), \\
-    \pi_0(x) = \int q(x,y)dy, \\
-    \pi_1(y) = \int q(x,y)dx
-    \end{array}\right.
-    \label{eq:static}
-\end{equation}
 
-To solve (\ref{eq:static}) is used Iterational Proportional Fitting (IPF), which alternates between solving two half bridges (constrained only on one distribution). 
+Такая задача решается с помощью итеративного алгоритма Iterational Proportional Fitting (IPF):
+\begin{equation*}
+    \begin{split}
+        \color{blue}p^*(x,y) = \arg\min_{p\in \mathcal{D}(\cdot, \pi_T)}D_{KL}(p(x,y)||q^*(x,y)), \\
+        \color{violet}q^*(x,y) = \arg\min_{q\in \mathcal{D}(\pi_0, \cdot)}D_{KL}(q(x,y)||p^*(x,y))
+    \end{split}
+\end{equation*}
+
+Продемонстрируем предложенный метод на примере \textcolor{blue}{обратного} шага:
+\begin{equation*}
+    p^*(x,y) = \arg\min_{p\in\mathcal{D}(\cdot, \pi_T)}\max_{D}\mathbb{E}_{(x,y)\sim p}\left[D(x,y)\right] - \mathbb{E}_{(x,y)\sim q^*}\left[e^{D(x,y) - 1}\right]
+\end{equation*}
+
+\footnotetext[1]{\href{https://arxiv.org/abs/1606.00709}{f-GAN: Training Generative Neural Samplers using Variational Divergence Minimization}}
 \end{frame}
 
-\begin{frame}{Suggested Method}
-~\\[-1mm]
-To leverage adversarial approach we represent KL divergence in it's variational (dual) form (inspired by f-GAN [2]):
-\begin{block}{Backward}
-    \begin{equation*}
-        \begin{split}
-            \min_{p(x,y)\in\mathcal{D}(\cdot, \pi_1)} D_{KL}(p(x,y)||q^{i-1}(x,y)) = \min_{p(x,y)\in\mathcal{D}(\cdot, \pi_1)}\max_{D}\mathbb{E}_{(x,y)\sim p}\left[D(x,y)\right] - \\ - \mathbb{E}_{(x,y)\sim q^{i-1}}\left[e^{D(x,y) - 1}\right]
-        \end{split}
-    \end{equation*}
-\end{block}
-
-\begin{block}{Forward}
-    \begin{equation*}
-        \begin{split}
-            \min_{q(x,y)\in\mathcal{D}(\pi_0, \cdot)} D_{KL}(q(x,y)||p^{i}(x,y)) = \min_{q(x,y)\in\mathcal{D}(\pi_0, \cdot)}\max_{D}\mathbb{E}_{(x,y)\sim q}\left[D(x,y)\right] - \\ - \mathbb{E}_{(x,y)\sim p^{i}}\left[e^{D(x,y) - 1}\right]
-        \end{split}
-    \end{equation*}
-\end{block}
-\end{frame}
-
-\begin{frame}{Suggested Method}
-~\\[-1mm]
-In sense of converting one sample to another we want to learn conditional distribution:
-\begin{block}{Backward}
-    \begin{equation*}
-        \begin{split}
-             \min_{p(x,y)\in\mathcal{D}(\cdot, \pi_1)}\max_{D}\mathbb{E}_{(x,y)\sim p}\left[D(x,y)\right] - \mathbb{E}_{(x,y)\sim q^{i-1}}\left[e^{D(x,y) - 1}\right] = \\ = \min_{p(x|y)}\max_{D}\mathbb{E}_{y \sim \pi_1}\mathbb{E}_{x\sim p(x|y)}\left[D(x,y)\right] - \mathbb{E}_{x\sim\pi_0}\mathbb{E}_{y\sim q^{i-1}(y|x)}\left[e^{D(x,y) - 1}\right]
-        \end{split}
-    \end{equation*}
-\end{block}
-
-\begin{block}{Forward}
-    \begin{equation*}
-        \begin{split}
-            \min_{q(x,y)\in\mathcal{D}(\pi_0, \cdot)}\max_{D}\mathbb{E}_{(x,y)\sim q}\left[D(x,y)\right] - \mathbb{E}_{(x,y)\sim p^{i}}\left[e^{D(x,y) - 1}\right] = \\ = \min_{q(y|x)}\max_{D}\mathbb{E}_{x\sim \pi_0}\mathbb{E}_{y\sim q(y|x)}\left[D(x,y)\right] - \mathbb{E}_{y\sim \pi_1}\mathbb{E}_{x\sim p^{i}(x|y)}\left[e^{D(x,y) - 1}\right]
-        \end{split}
-    \end{equation*}
-\end{block}
-\end{frame}
-
-\begin{frame}{Suggested Method}
-~\\[-1mm]
-Using approach from Conditional GAN [3]:
-\begin{block}{Backward}
-    \begin{equation*}
-        \begin{split}
-             \min_{p(x|y)}\max_{D}\mathbb{E}_{y \sim \pi_1}\mathbb{E}_{x\sim p(x|y)}\left[D(x,y)\right] - \mathbb{E}_{x\sim\pi_0}\mathbb{E}_{y\sim q^{i-1}(y|x)}\left[e^{D(x,y) - 1}\right] = \\ = \min_{G}\max_{D}\mathbb{E}_{y \sim \pi_1}\mathbb{E}_{z\sim p(z)}\left[D(G(z|y),y)\right] - \mathbb{E}_{x\sim\pi_0}\mathbb{E}_{z\sim p(z)}\left[e^{D(x,F^{i-1}(z|x)) - 1}\right]
-        \end{split}
-    \end{equation*}
-\end{block}
-
-\begin{block}{Forward}
-    \begin{equation*}
-        \begin{split}
-            \min_{q(y|x)}\max_{D}\mathbb{E}_{x\sim \pi_0}\mathbb{E}_{y\sim q(y|x)}\left[D(x,y)\right] - \mathbb{E}_{y\sim \pi_1}\mathbb{E}_{x\sim p^{i}(x|y)}\left[e^{D(x,y) - 1}\right] = \\ = \min_{F}\max_{D}\mathbb{E}_{x\sim \pi_0}\mathbb{E}_{z\sim p(z)}\left[D(x,F(z|x))\right] - \mathbb{E}_{y\sim \pi_1}\mathbb{E}_{z\sim p(z)}\left[e^{D(G^{i}(z|y),y) - 1}\right]
-        \end{split}
-    \end{equation*}
-\end{block}
-\end{frame}
-
-\begin{frame}{Suggested Method}
+\begin{frame}{Иллюстрация IPF}
 ~\\[-1mm]
     \begin{figure}
         \centering
@@ -188,50 +140,48 @@ Using approach from Conditional GAN [3]:
     \end{figure}
 \end{frame}
 
-%----------------------------------------------------------------------------------------------------------
-\section{Analysis of suggested method}
-\begin{frame}{Analysis of suggested method}
-\justifying
-
-The graphs show the adversarial loss and final generative capabilities of adversarial bridges. 
-\begin{figure}[h!]
-\includegraphics[width=0.45\textwidth]{figures/results.png}
-\includegraphics[width=0.45\textwidth]{figures/loss.png}
-\end{figure}
-
-It was conducted several experiments on data from multi-modal normal distributions, and no mode collapse problem was encountered.
-
+\begin{frame}{Предложенный метод}
+    ~\\[-1mm]
+    Разложим мат. ожидания и введем генератор\footnote{\href{https://arxiv.org/abs/1411.1784}{Conditional Generative Adversarial Nets}}:
+    \begin{equation*}
+        \begin{split}
+             \min_{\textcolor{red}{p(x,y)\in\mathcal{D}(\cdot, \pi_T)}}\max_{D}\textcolor{blue}{\mathbb{E}_{(x,y)\sim p(x,y)}}\left[D(x,y)\right] - \textcolor{violet}{\mathbb{E}_{(x,y)\sim q^*(x,y)}}\left[e^{D(x,y) - 1}\right] = \\ = \min_{\textcolor{red}{p(x|y)}}\max_{D}\textcolor{blue}{\mathbb{E}_{y \sim \pi_T}\mathbb{E}_{x\sim p(x|y)}}\left[D(x,y)\right] - \textcolor{violet}{\mathbb{E}_{x\sim\pi_0}\mathbb{E}_{y\sim q^*(y|x)}}\left[e^{D(x,y) - 1}\right] = \\ = \min_{\textcolor{red}{G}}\max_{D}\mathbb{E}_{y \sim \pi_T}\textcolor{blue}{\mathbb{E}_{z\sim p(z)}}\left[D\left(G(z,y),y\right)\right] - \mathbb{E}_{x\sim\pi_0}\textcolor{violet}{\mathbb{E}_{z\sim p(z)}}\left[e^{D(x,F^*(z,x)) - 1}\right],
+        \end{split}
+    \end{equation*}
+    где $G$, $F$, $D$ - генераторы и дискриминатор, параметризованные нейронными сетями.
 \end{frame}
 
+
+
 %----------------------------------------------------------------------------------------------------------
-\section{Conclusion}
-\begin{frame}{Conclusion}
+\section{Эксперименты}
+\begin{frame}{Демонстарция метода на игрушечном 2D наборе данных }
+    \justifying
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\linewidth]{slides//4th//figures/2d_toy.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Коллапс моды}
+    \justifying
+    Как и все GAN модели, данный подход очень чувствителен к подбору гиперпараметров. Неаккуратный выбор может привести к коллапсу моды.
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\linewidth]{slides//4th//figures/mode_collapse.png}
+    \end{figure}
+\end{frame}
+
+
+%----------------------------------------------------------------------------------------------------------
+\section{Вывод}
+\begin{frame}{Выносится на защиту}
 \justifying
     \begin{enumerate}
         \justifying
-        \item Proposed method of solving Schrodinger Bridge Problem with adversarial training.
-        \item Conducted several experiments that shows great generative capability of proposed method, 
+        \item Предложен метод, который не строит стохастического процесса между распределениями, и который не страдает от проклятия размерности.
+        \item Проведены эксперименты и выявлены недостатки подхода. 
     \end{enumerate}
 \end{frame}
-
-%---------------------------------------------------------------------------------------------------------
-\section{Related papers}
-\begin{frame}{Related papers}
-\begin{enumerate}[1.]
-    \item Machine-learning approaches for the empirical Schrodinger bridge problem\footnote{\href{https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-958.pdf}{Machine-learning approaches for the empirical Schrodinger bridge problem, F. Vargas, 2021}}
-    \item f-GAN: Training Generative Neural Samplers using Variational Divergence Minimization\footnote{\href{https://arxiv.org/abs/1606.00709}{f-GAN: Training Generative Neural Samplers using Variational Divergence Minimization, S. Nowozin, 2016}}
-    \item Conditional Generative Adversarial Nets\footnote{\href{ https://arxiv.org/abs/1411.1784}{Conditional Generative Adversarial Nets, Mirza M. and Osindero S., 2014}}
-\end{enumerate}
-\end{frame}
-%---------------------------------------------------------------------------------------------------------
-\section{Future work plan}
-\begin{frame}{Future work plan}
-\begin{enumerate}[1.]
-    \item Analyse numerical error and stability of proposed algorithm;
-    \item Consider adversarial training without using IPF;
-    \item Investigate generalization of $D_{KL}$ to other distances or metrics.
-\end{enumerate}
-\end{frame}
-%----------------------------------------------------------------------------------------------------------
 
 \end{document} 
